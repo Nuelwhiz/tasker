@@ -1,4 +1,4 @@
-/* import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { SignJWT } from "jose";
 
 const JWT_SECRET = new TextEncoder().encode(
@@ -36,4 +36,4 @@ export async function GET(request: Request) {
   });
 
   return response;
-} */
+}
