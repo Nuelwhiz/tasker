@@ -32,6 +32,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-  ],
+, "src/app/login/hh/hhhhh"  ],
   "exclude": ["node_modules"]
 }

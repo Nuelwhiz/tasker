@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
+  subsets: ["latin"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "Tasker | Multi-Tenant Workspace Engine",
-  description: "Enterprise task management with strict tenant boundary isolation.",
+  title: {
+    default: "Tasker",
+    template: "%s | Tasker",
+  },
+  description:
+    "Tasker helps you organize your tasks, manage projects, and get things done.",
 };
 
 export default function RootLayout({
@@ -15,8 +23,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.className} bg-slate-950 text-slate-100 antialiased selection:bg-violet-500 selection:text-white`}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${jakarta.variable} antialiased`}>
         {children}
       </body>
     </html>
