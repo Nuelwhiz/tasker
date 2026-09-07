@@ -269,7 +269,7 @@ export default function LoginPage() {
               </p>
 
               <Link
-                href="/accept-invite"
+                href="/accept-invitation"
                 className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
               >
                 Accept invitation
