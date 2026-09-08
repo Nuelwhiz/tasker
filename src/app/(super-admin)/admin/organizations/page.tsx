@@ -12,45 +12,7 @@ import {
 } from "lucide-react";
 
 import AdminLayout from "@/components/layout/admin-layout";
-
-const organizations = [
-  {
-    id: 1,
-    name: "Acme Technologies",
-    admin: "John Doe",
-    email: "john@acme.com",
-    users: 24,
-    status: "Active",
-    created: "Sep 4, 2026",
-  },
-  {
-    id: 2,
-    name: "Bright Solutions",
-    admin: "Sarah Williams",
-    email: "sarah@bright.com",
-    users: 16,
-    status: "Active",
-    created: "Sep 2, 2026",
-  },
-  {
-    id: 3,
-    name: "Nova Labs",
-    admin: "Michael James",
-    email: "michael@novalabs.com",
-    users: 8,
-    status: "Pending",
-    created: "Aug 30, 2026",
-  },
-  {
-    id: 4,
-    name: "Vertex Digital",
-    admin: "David Okafor",
-    email: "david@vertex.com",
-    users: 31,
-    status: "Active",
-    created: "Aug 27, 2026",
-  },
-];
+import { organizations } from "@/lib/mock-data/organizations";
 
 export default function OrganizationsPage() {
   const [search, setSearch] = useState("");
@@ -230,16 +192,19 @@ export default function OrganizationsPage() {
               {filteredOrganizations.map((organization) => (
                 <tr
                   key={organization.id}
-                  className="border-b border-border last:border-0 hover:bg-muted/30"
+                  onClick={() =>
+                    (window.location.href = `/admin/organizations/${organization.id}`)
+                  }
+                  className="group cursor-pointer border-b border-border last:border-0 transition-all duration-200 hover:bg-primary/5 hover:shadow-sm"
                 >
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform duration-200 group-hover:scale-105">
                         <Building2 className="h-5 w-5" />
                       </div>
 
                       <div>
-                        <p className="font-semibold">
+                        <p className="font-semibold transition-colors group-hover:text-primary">
                           {organization.name}
                         </p>
 
@@ -271,6 +236,9 @@ export default function OrganizationsPage() {
                   <td className="px-6 py-5 text-right">
                     <Link
                       href={`/admin/organizations/${organization.id}`}
+                      onClick={(event) =>
+                        event.stopPropagation()
+                      }
                       className="text-sm font-semibold text-primary hover:underline"
                     >
                       View
@@ -287,16 +255,30 @@ export default function OrganizationsPage() {
           {filteredOrganizations.map((organization) => (
             <div
               key={organization.id}
-              className="p-5"
+              role="link"
+              tabIndex={0}
+              onClick={() =>
+                (window.location.href = `/admin/organizations/${organization.id}`)
+              }
+              onKeyDown={(event) => {
+                if (
+                  event.key === "Enter" ||
+                  event.key === " "
+                ) {
+                  event.preventDefault();
+                  window.location.href = `/admin/organizations/${organization.id}`;
+                }
+              }}
+              className="group cursor-pointer p-5 transition-all duration-200 hover:bg-primary/5 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform duration-200 group-hover:scale-105">
                     <Building2 className="h-5 w-5" />
                   </div>
 
                   <div className="min-w-0">
-                    <p className="truncate font-semibold">
+                    <p className="truncate font-semibold transition-colors group-hover:text-primary">
                       {organization.name}
                     </p>
 
@@ -322,12 +304,9 @@ export default function OrganizationsPage() {
                   </p>
                 </div>
 
-                <Link
-                  href={`/admin/organizations/${organization.id}`}
-                  className="text-sm font-semibold text-primary hover:underline"
-                >
-                  View organization
-                </Link>
+                <span className="text-sm font-semibold text-primary transition-transform duration-200 group-hover:translate-x-1">
+                  View organization →
+                </span>
               </div>
             </div>
           ))}

@@ -2,32 +2,73 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Building2,
+  CheckCircle2,
   ChevronRight,
-  Mail,
   MapPin,
   Save,
   User,
+  XCircle,
 } from "lucide-react";
 
 import AdminLayout from "@/components/layout/admin-layout";
+import { organizations } from "@/lib/mock-data/organizations";
 
 export default function EditOrganizationPage() {
+  const params = useParams();
+  const router = useRouter();
+
+  const organizationId = Number(params.id);
+
+  const organization = organizations.find(
+    (item) => item.id === organizationId
+  );
+
+  const adminNameParts = organization?.admin.trim().split(/\s+/) ?? [];
+
   const [isSaving, setIsSaving] = useState(false);
 
-  // Temporary mock data.
-  // This will later come from the Laravel API.
   const [formData, setFormData] = useState({
-    organizationName: "Acme Technologies",
-    organizationEmail: "admin@acmetech.com",
-    phone: "+234 801 234 5678",
-    address: "12 Admiralty Way, Lekki, Lagos",
-    firstName: "John",
-    lastName: "Doe",
-    adminEmail: "john.doe@acmetech.com",
+    organizationName: organization?.name ?? "",
+    organizationEmail: organization?.email ?? "",
+    phone: organization?.phone ?? "",
+    address: organization?.address ?? "",
+    firstName: adminNameParts[0] ?? "",
+    lastName: adminNameParts.slice(1).join(" "),
+    adminEmail: organization?.adminEmail ?? "",
   });
+
+  if (!organization) {
+    return (
+      <AdminLayout
+        title="Organization Not Found"
+        subtitle="Tasker Administration"
+      >
+        <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
+          <Building2 className="h-12 w-12 text-muted-foreground/40" />
+
+          <h2 className="mt-4 text-xl font-bold">
+            Organization not found
+          </h2>
+
+          <p className="mt-2 text-sm text-muted-foreground">
+            The organization you are trying to edit does not exist.
+          </p>
+
+          <Link
+            href="/admin/organizations"
+            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to organizations
+          </Link>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   const handleChange = (
     field: keyof typeof formData,
@@ -46,19 +87,30 @@ export default function EditOrganizationPage() {
 
     setIsSaving(true);
 
-    // Temporary frontend-only save.
-    // We will connect this to the Laravel API later.
+    // Temporary frontend-only update.
+    // This will later be replaced with the Laravel API request.
     await new Promise((resolve) =>
-      setTimeout(resolve, 1000)
+      setTimeout(resolve, 800)
     );
 
+    organization.name = formData.organizationName;
+    organization.email = formData.organizationEmail;
+    organization.phone = formData.phone;
+    organization.address = formData.address;
+    organization.admin = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
+    organization.adminEmail = formData.adminEmail;
+
     setIsSaving(false);
+
+    router.push(`/admin/organizations/${organization.id}`);
   };
+
+  const isActive = organization.status === "Active";
 
   return (
     <AdminLayout
-      title="Edit Organization"
-      subtitle="Tasker Administration"
+      title={organization.name}
+      subtitle="Edit Organization"
     >
       {/* Breadcrumb */}
       <div className="mb-6 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -81,10 +133,10 @@ export default function EditOrganizationPage() {
         <ChevronRight className="h-4 w-4" />
 
         <Link
-          href="/admin/organizations/1"
+          href={`/admin/organizations/${organization.id}`}
           className="transition hover:text-foreground"
         >
-          {formData.organizationName}
+          {organization.name}
         </Link>
 
         <ChevronRight className="h-4 w-4" />
@@ -96,7 +148,7 @@ export default function EditOrganizationPage() {
 
       {/* Back */}
       <Link
-        href="/admin/organizations/1"
+        href={`/admin/organizations/${organization.id}`}
         className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
@@ -143,10 +195,7 @@ export default function EditOrganizationPage() {
                   label="Organization name"
                   value={formData.organizationName}
                   onChange={(value) =>
-                    handleChange(
-                      "organizationName",
-                      value
-                    )
+                    handleChange("organizationName", value)
                   }
                   placeholder="Enter organization name"
                   required
@@ -157,10 +206,7 @@ export default function EditOrganizationPage() {
                   type="email"
                   value={formData.organizationEmail}
                   onChange={(value) =>
-                    handleChange(
-                      "organizationEmail",
-                      value
-                    )
+                    handleChange("organizationEmail", value)
                   }
                   placeholder="organization@example.com"
                   required
@@ -233,10 +279,7 @@ export default function EditOrganizationPage() {
                     type="email"
                     value={formData.adminEmail}
                     onChange={(value) =>
-                      handleChange(
-                        "adminEmail",
-                        value
-                      )
+                      handleChange("adminEmail", value)
                     }
                     placeholder="admin@example.com"
                     required
@@ -257,16 +300,42 @@ export default function EditOrganizationPage() {
               </div>
 
               <div className="p-5">
-                <div className="flex items-center gap-3 rounded-lg bg-success/10 p-3">
-                  <div className="h-2.5 w-2.5 rounded-full bg-success" />
+                <div
+                  className={`flex items-center gap-3 rounded-lg p-3 ${
+                    isActive
+                      ? "bg-success/10"
+                      : "bg-danger/10"
+                  }`}
+                >
+                  <div
+                    className={`h-2.5 w-2.5 rounded-full ${
+                      isActive
+                        ? "bg-success"
+                        : "bg-danger"
+                    }`}
+                  />
 
                   <div>
-                    <p className="text-sm font-semibold text-success">
-                      Active
+                    <p
+                      className={`flex items-center gap-1.5 text-sm font-semibold ${
+                        isActive
+                          ? "text-success"
+                          : "text-danger"
+                      }`}
+                    >
+                      {isActive ? (
+                        <CheckCircle2 className="h-4 w-4" />
+                      ) : (
+                        <XCircle className="h-4 w-4" />
+                      )}
+
+                      {organization.status}
                     </p>
 
                     <p className="text-xs text-muted-foreground">
-                      Organization can access Tasker.
+                      {isActive
+                        ? "Organization can access Tasker."
+                        : "Organization cannot access Tasker."}
                     </p>
                   </div>
                 </div>
@@ -314,8 +383,7 @@ export default function EditOrganizationPage() {
                   <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
 
                   <p className="text-sm text-muted-foreground">
-                    {formData.address ||
-                      "No address provided"}
+                    {formData.address || "No address provided"}
                   </p>
                 </div>
               </div>
@@ -326,7 +394,7 @@ export default function EditOrganizationPage() {
         {/* Form actions */}
         <div className="mt-6 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end">
           <Link
-            href="/admin/organizations/1"
+            href={`/admin/organizations/${organization.id}`}
             className="inline-flex items-center justify-center rounded-lg border border-border bg-card px-5 py-2.5 text-sm font-semibold transition hover:bg-muted"
           >
             Cancel
@@ -339,9 +407,7 @@ export default function EditOrganizationPage() {
           >
             <Save className="h-4 w-4" />
 
-            {isSaving
-              ? "Saving changes..."
-              : "Save changes"}
+            {isSaving ? "Saving changes..." : "Save changes"}
           </button>
         </div>
       </form>

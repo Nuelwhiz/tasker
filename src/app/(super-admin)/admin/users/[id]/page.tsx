@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   Building2,
@@ -9,7 +10,9 @@ import {
   Mail,
   MoreHorizontal,
   Pencil,
+  Power,
   ShieldCheck,
+  Trash2,
   User,
 } from "lucide-react";
 
@@ -33,10 +36,33 @@ function Avatar({ name }: { name: string }) {
 
 export default function UserDetailsPage() {
   const params = useParams();
+  const router = useRouter();
 
   const userId = Number(params.id);
 
   const user = users.find((item) => item.id === userId);
+
+  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
+  const [status, setStatus] = useState<string>(user?.status ?? "Active");
+
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node)
+      ) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   if (!user) {
     return (
@@ -68,6 +94,46 @@ export default function UserDetailsPage() {
       </AdminLayout>
     );
   }
+
+  const handleToggleStatus = () => {
+    const newStatus = status === "Active" ? "Inactive" : "Active";
+
+    setStatus(newStatus);
+    setIsMenuOpen(false);
+
+    // Temporary mock update.
+    // This will be replaced with a Laravel API request later.
+    console.log("Updated user status:", {
+      userId: user.id,
+      status: newStatus,
+    });
+
+    alert(
+      `${user.name} has been ${
+        newStatus === "Active" ? "activated" : "deactivated"
+      }.`,
+    );
+  };
+
+  const handleDelete = () => {
+    setIsMenuOpen(false);
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${user.name}? This action cannot be undone.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    // Temporary mock delete.
+    // This will be replaced with a Laravel DELETE request later.
+    console.log("Delete user:", user.id);
+
+    alert("User deleted successfully.");
+
+    router.push("/admin/users");
+  };
 
   return (
     <AdminLayout
@@ -112,12 +178,12 @@ export default function UserDetailsPage() {
 
                   <span
                     className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      user.status === "Active"
+                      status === "Active"
                         ? "bg-success/10 text-success"
                         : "bg-muted text-muted-foreground"
                     }`}
                   >
-                    {user.status}
+                    {status}
                   </span>
                 </div>
 
@@ -140,12 +206,56 @@ export default function UserDetailsPage() {
                 Edit
               </Link>
 
-              <button
-                type="button"
-                className="rounded-xl border border-border p-2.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-              >
-                <MoreHorizontal className="h-5 w-5" />
-              </button>
+              {/* Actions Menu */}
+              <div ref={menuRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsMenuOpen((open) => !open)}
+                  aria-label="More user actions"
+                  aria-expanded={isMenuOpen}
+                  className="rounded-xl border border-border p-2.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                >
+                  <MoreHorizontal className="h-5 w-5" />
+                </button>
+
+                {isMenuOpen && (
+                  <div className="absolute right-0 z-20 mt-2 w-52 overflow-hidden rounded-xl border border-border bg-card p-1 shadow-lg">
+                    {/* Edit */}
+                    <Link
+                      href={`/admin/users/${user.id}/edit`}
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition hover:bg-muted"
+                    >
+                      <Pencil className="h-4 w-4 text-muted-foreground" />
+                      Edit User
+                    </Link>
+
+                    {/* Activate / Deactivate */}
+                    <button
+                      type="button"
+                      onClick={handleToggleStatus}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition hover:bg-muted"
+                    >
+                      <Power className="h-4 w-4 text-muted-foreground" />
+                      {status === "Active"
+                        ? "Deactivate User"
+                        : "Activate User"}
+                    </button>
+
+                    <div className="my-1 border-t border-border" />
+
+                    {/* Delete */}
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-destructive transition hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete User
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -261,7 +371,7 @@ export default function UserDetailsPage() {
               </p>
 
               <p className="mt-1 text-sm font-medium">
-                {user.status}
+                {status}
               </p>
             </div>
 
