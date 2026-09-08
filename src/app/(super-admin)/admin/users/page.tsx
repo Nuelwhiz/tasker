@@ -9,13 +9,43 @@ import {
   User,
   Users,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import AdminLayout from "@/components/layout/admin-layout";
-import { users } from "@/lib/mock-data/users";
+import { getUsers } from "@/lib/users";
+import type { User as UserType } from "@/lib/mock-data/users";
 
 export default function UsersPage() {
+  const [users, setUsers] = useState<UserType[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Load users from localStorage
+  const loadUsers = () => {
+    setUsers(getUsers());
+  };
+
+  useEffect(() => {
+    loadUsers();
+
+    // Refresh when the page becomes visible again.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        loadUsers();
+      }
+    };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange,
+    );
+
+    return () => {
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange,
+      );
+    };
+  }, []);
 
   const filteredUsers = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
@@ -29,9 +59,10 @@ export default function UsersPage() {
         user.name.toLowerCase().includes(query) ||
         user.email.toLowerCase().includes(query) ||
         user.organization.toLowerCase().includes(query) ||
-        user.role.toLowerCase().includes(query),
+        user.role.toLowerCase().includes(query) ||
+        user.status.toLowerCase().includes(query),
     );
-  }, [searchQuery]);
+  }, [searchQuery, users]);
 
   const activeUsers = users.filter(
     (user) => user.status === "Active",
@@ -54,8 +85,12 @@ export default function UsersPage() {
           <div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>Administration</span>
+
               <ChevronRight className="h-4 w-4" />
-              <span className="text-foreground">Users</span>
+
+              <span className="text-foreground">
+                Users
+              </span>
             </div>
 
             <h2 className="mt-2 text-2xl font-bold">
@@ -78,6 +113,7 @@ export default function UsersPage() {
 
         {/* Stats */}
         <div className="grid gap-4 sm:grid-cols-3">
+          {/* Total Users */}
           <div className="rounded-2xl border border-border bg-card p-5">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -96,6 +132,7 @@ export default function UsersPage() {
             </div>
           </div>
 
+          {/* Active Users */}
           <div className="rounded-2xl border border-border bg-card p-5">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/10 text-success">
@@ -114,6 +151,7 @@ export default function UsersPage() {
             </div>
           </div>
 
+          {/* Admins & Leads */}
           <div className="rounded-2xl border border-border bg-card p-5">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-warning/10 text-warning">
@@ -184,114 +222,143 @@ export default function UsersPage() {
               </thead>
 
               <tbody>
-                {filteredUsers.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="border-b border-border last:border-0 transition hover:bg-muted/40"
-                  >
-                    <td className="px-6 py-4">
-                      <Link
-                        href={`/admin/users/${user.id}`}
-                        className="group flex items-center gap-3"
-                      >
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                          {user.name
-                            .split(" ")
-                            .map((part) => part[0])
-                            .join("")
-                            .slice(0, 2)
-                            .toUpperCase()}
-                        </div>
+                {filteredUsers.map((user) => {
+                  const statusStyles =
+                    user.status === "Active"
+                      ? "bg-success/10 text-success"
+                      : user.status === "Pending"
+                        ? "bg-warning/10 text-warning"
+                        : "bg-muted text-muted-foreground";
 
-                        <div>
-                          <p className="font-semibold group-hover:text-primary">
-                            {user.name}
-                          </p>
+                  return (
+                    <tr
+                      key={user.id}
+                      className="border-b border-border last:border-0 transition hover:bg-muted/40"
+                    >
+                      {/* User */}
+                      <td className="px-6 py-4">
+                        <Link
+                          href={`/admin/users/${user.id}`}
+                          className="group flex items-center gap-3"
+                        >
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                            {user.name
+                              .split(" ")
+                              .map((part) => part[0])
+                              .join("")
+                              .slice(0, 2)
+                              .toUpperCase()}
+                          </div>
 
-                          <p className="text-sm text-muted-foreground">
-                            {user.email}
-                          </p>
-                        </div>
-                      </Link>
-                    </td>
+                          <div>
+                            <p className="font-semibold group-hover:text-primary">
+                              {user.name}
+                            </p>
 
-                    <td className="px-6 py-4 text-sm font-medium">
-                      {user.organization}
-                    </td>
+                            <p className="text-sm text-muted-foreground">
+                              {user.email}
+                            </p>
+                          </div>
+                        </Link>
+                      </td>
 
-                    <td className="px-6 py-4">
-                      <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-                        {user.role}
-                      </span>
-                    </td>
+                      {/* Organization */}
+                      <td className="px-6 py-4 text-sm font-medium">
+                        {user.organization}
+                      </td>
 
-                    <td className="px-6 py-4">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          user.status === "Active"
-                            ? "bg-success/10 text-success"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {user.status}
-                      </span>
-                    </td>
+                      {/* Role */}
+                      <td className="px-6 py-4">
+                        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                          {user.role}
+                        </span>
+                      </td>
 
-                    <td className="px-6 py-4 text-sm text-muted-foreground">
-                      {user.joinedAt}
-                    </td>
+                      {/* Status */}
+                      <td className="px-6 py-4">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles}`}
+                        >
+                          {user.status}
+                        </span>
+                      </td>
 
-                    <td className="px-6 py-4 text-right">
-                      <Link
-                        href={`/admin/users/${user.id}`}
-                        className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                      >
-                        View
-                        <ChevronRight className="h-4 w-4" />
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                      {/* Joined */}
+                      <td className="px-6 py-4 text-sm text-muted-foreground">
+                        {user.joinedAt}
+                      </td>
+
+                      {/* Action */}
+                      <td className="px-6 py-4 text-right">
+                        <Link
+                          href={`/admin/users/${user.id}`}
+                          className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                        >
+                          View
+
+                          <ChevronRight className="h-4 w-4" />
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
           {/* Mobile List */}
           <div className="divide-y divide-border md:hidden">
-            {filteredUsers.map((user) => (
-              <Link
-                key={user.id}
-                href={`/admin/users/${user.id}`}
-                className="flex items-center justify-between gap-3 p-4 transition hover:bg-muted/40"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                    {user.name
-                      .split(" ")
-                      .map((part) => part[0])
-                      .join("")
-                      .slice(0, 2)
-                      .toUpperCase()}
+            {filteredUsers.map((user) => {
+              const statusStyles =
+                user.status === "Active"
+                  ? "bg-success/10 text-success"
+                  : user.status === "Pending"
+                    ? "bg-warning/10 text-warning"
+                    : "bg-muted text-muted-foreground";
+
+              return (
+                <Link
+                  key={user.id}
+                  href={`/admin/users/${user.id}`}
+                  className="flex items-center justify-between gap-3 p-4 transition hover:bg-muted/40"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                      {user.name
+                        .split(" ")
+                        .map((part) => part[0])
+                        .join("")
+                        .slice(0, 2)
+                        .toUpperCase()}
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate font-semibold">
+                          {user.name}
+                        </p>
+
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusStyles}`}
+                        >
+                          {user.status}
+                        </span>
+                      </div>
+
+                      <p className="truncate text-sm text-muted-foreground">
+                        {user.email}
+                      </p>
+
+                      <p className="mt-1 text-xs text-primary">
+                        {user.role}
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold">
-                      {user.name}
-                    </p>
-
-                    <p className="truncate text-sm text-muted-foreground">
-                      {user.email}
-                    </p>
-
-                    <p className="mt-1 text-xs text-primary">
-                      {user.role}
-                    </p>
-                  </div>
-                </div>
-
-                <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
-              </Link>
-            ))}
+                  <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+                </Link>
+              );
+            })}
 
             {filteredUsers.length === 0 && (
               <div className="p-8 text-center">

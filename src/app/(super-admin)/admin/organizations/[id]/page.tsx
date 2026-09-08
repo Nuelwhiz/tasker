@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -22,9 +22,16 @@ import {
 } from "lucide-react";
 
 import AdminLayout from "@/components/layout/admin-layout";
+
 import {
-  organizations,
-  type OrganizationStatus,
+  getOrganizations,
+  updateOrganizationStatus,
+  deleteOrganization,
+} from "@/lib/organizations";
+
+import type {
+  Organization,
+  OrganizationStatus,
 } from "@/lib/mock-data/organizations";
 
 export default function OrganizationDetailsPage() {
@@ -33,14 +40,27 @@ export default function OrganizationDetailsPage() {
 
   const [showActions, setShowActions] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [organization, setOrganization] =
+    useState<Organization | null>(null);
+  const [status, setStatus] =
+    useState<OrganizationStatus | null>(null);
 
   const organizationId = Number(params.id);
 
-  const organization = organizations.find(
-    (item) => item.id === organizationId
-  );
+  useEffect(() => {
+    const organizations = getOrganizations();
 
-  if (!organization) {
+    const foundOrganization = organizations.find(
+      (item) => item.id === organizationId
+    );
+
+    if (foundOrganization) {
+      setOrganization(foundOrganization);
+      setStatus(foundOrganization.status);
+    }
+  }, [organizationId]);
+
+  if (!organization || !status) {
     return (
       <AdminLayout
         title="Organization Not Found"
@@ -69,28 +89,31 @@ export default function OrganizationDetailsPage() {
     );
   }
 
-  const [status, setStatus] = useState<OrganizationStatus>(
-    organization.status
-  );
-
   const isActive = status === "Active";
 
   const handleToggleStatus = () => {
-    const nextStatus = isActive ? "Inactive" : "Active";
+    const nextStatus: OrganizationStatus = isActive
+      ? "Inactive"
+      : "Active";
 
-    organization.status = nextStatus;
+    updateOrganizationStatus(organizationId, nextStatus);
+
     setStatus(nextStatus);
+
+    setOrganization((currentOrganization) =>
+      currentOrganization
+        ? {
+            ...currentOrganization,
+            status: nextStatus,
+          }
+        : currentOrganization
+    );
+
     setShowActions(false);
   };
 
   const handleDelete = () => {
-    const organizationIndex = organizations.findIndex(
-      (item) => item.id === organizationId
-    );
-
-    if (organizationIndex !== -1) {
-      organizations.splice(organizationIndex, 1);
-    }
+    deleteOrganization(organizationId);
 
     setShowDeleteConfirm(false);
     setShowActions(false);

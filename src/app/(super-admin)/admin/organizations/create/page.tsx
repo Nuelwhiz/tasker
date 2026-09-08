@@ -2,16 +2,21 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Building2,
+  Mail,
   ShieldCheck,
   Users,
 } from "lucide-react";
 
 import AdminLayout from "@/components/layout/admin-layout";
+import { createOrganization } from "@/lib/organizations";
 
-export default function CreateOrganizationPage() {
+export default function InviteOrganizationPage() {
+  const router = useRouter();
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -35,21 +40,31 @@ export default function CreateOrganizationPage() {
     }));
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (
+    event: FormEvent<HTMLFormElement>
+  ) => {
     event.preventDefault();
 
     setIsSubmitting(true);
 
-    // Frontend-only for now.
-    // We will connect this to the Laravel API later.
+    createOrganization({
+      name: formData.organizationName,
+      email: formData.organizationEmail,
+      phone: formData.organizationPhone,
+      address: formData.organizationAddress,
+      admin: `${formData.adminFirstName} ${formData.adminLastName}`,
+      adminEmail: formData.adminEmail,
+    });
+
     setTimeout(() => {
       setIsSubmitting(false);
-    }, 1000);
+      router.push("/admin/organizations");
+    }, 500);
   };
 
   return (
     <AdminLayout
-      title="Create Organization"
+      title="Invite Organization"
       subtitle="Tasker Administration"
     >
       <div className="mx-auto max-w-4xl">
@@ -74,7 +89,7 @@ export default function CreateOrganizationPage() {
           <span>/</span>
 
           <span className="text-foreground">
-            Create
+            Invite Organization
           </span>
         </div>
 
@@ -94,12 +109,12 @@ export default function CreateOrganizationPage() {
           </p>
 
           <h2 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
-            Create a new organization
+            Invite a new organization
           </h2>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-            Add an organization to Tasker and assign its
-            administrator.
+            Send an invitation to an organization and its
+            administrator to join the Tasker platform.
           </p>
         </div>
 
@@ -121,7 +136,8 @@ export default function CreateOrganizationPage() {
                   </h3>
 
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Basic information about the organization.
+                    Provide the basic information for the
+                    organization you want to invite.
                   </p>
                 </div>
               </div>
@@ -180,7 +196,8 @@ export default function CreateOrganizationPage() {
                   </h3>
 
                   <p className="mt-1 text-sm text-muted-foreground">
-                    The administrator will manage this organization.
+                    This person will receive the organization
+                    invitation and manage the organization.
                   </p>
                 </div>
               </div>
@@ -219,22 +236,23 @@ export default function CreateOrganizationPage() {
             </div>
           </div>
 
-          {/* Access information */}
+          {/* Invitation information */}
           <div className="rounded-2xl border border-border bg-primary/5 p-5 sm:p-6">
             <div className="flex gap-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <ShieldCheck className="h-5 w-5" />
+                <Mail className="h-5 w-5" />
               </div>
 
               <div>
                 <h3 className="font-semibold">
-                  Administrator access
+                  Invitation access
                 </h3>
 
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  After the organization is created, the
-                  administrator will receive an invitation to
-                  access their Tasker organization dashboard.
+                  An invitation will be sent to the administrator&apos;s
+                  email address. They can use the invitation to
+                  complete their setup and access their Tasker
+                  organization dashboard.
                 </p>
               </div>
             </div>
@@ -252,11 +270,13 @@ export default function CreateOrganizationPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
+              <Mail className="h-4 w-4" />
+
               {isSubmitting
-                ? "Creating..."
-                : "Create organization"}
+                ? "Sending invitation..."
+                : "Send Invitation"}
             </button>
           </div>
         </form>

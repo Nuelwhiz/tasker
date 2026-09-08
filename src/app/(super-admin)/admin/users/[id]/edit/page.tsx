@@ -109,8 +109,8 @@ export default function EditUserPage() {
 
   return (
     <AdminLayout
-      title={`Edit ${user.name}`}
-      subtitle="Tasker Administration"
+      title={user.name}
+      subtitle="Edit User"
     >
       <div className="space-y-6">
         {/* Breadcrumb */}

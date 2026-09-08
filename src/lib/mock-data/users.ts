@@ -3,7 +3,7 @@ export type User = {
   name: string;
   email: string;
   role: "Organization Admin" | "Team Lead" | "Member";
-  status: "Active" | "Inactive";
+  status: "Active" | "Inactive" | "Pending";
   joinedAt: string;
   organization: string;
   organizationId: number;

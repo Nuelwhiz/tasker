@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Building2,
   ChevronRight,
@@ -12,11 +12,19 @@ import {
 } from "lucide-react";
 
 import AdminLayout from "@/components/layout/admin-layout";
-import { organizations } from "@/lib/mock-data/organizations";
+
+import { getOrganizations } from "@/lib/organizations";
+
+import type { Organization } from "@/lib/mock-data/organizations";
 
 export default function OrganizationsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+
+  useEffect(() => {
+    setOrganizations(getOrganizations());
+  }, []);
 
   const filteredOrganizations = useMemo(() => {
     return organizations.filter((organization) => {
@@ -33,7 +41,7 @@ export default function OrganizationsPage() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [search, statusFilter]);
+  }, [organizations, search, statusFilter]);
 
   return (
     <AdminLayout
@@ -75,7 +83,7 @@ export default function OrganizationsPage() {
           className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
         >
           <Plus className="h-4 w-4" />
-          Create organization
+          Invite organization
         </Link>
       </div>
 
@@ -155,6 +163,7 @@ export default function OrganizationsPage() {
               <option value="All">All statuses</option>
               <option value="Active">Active</option>
               <option value="Pending">Pending</option>
+              <option value="Inactive">Inactive</option>
             </select>
           </div>
         </div>
