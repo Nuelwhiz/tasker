@@ -10,41 +10,147 @@ import {
   Users,
 } from "lucide-react";
 
-import {TaskerLogo} from "@/components/layout/tasker-logo";
+import { TaskerLogo } from "@/components/layout/tasker-logo";
+
+export type UserRole =
+  | "super_admin"
+  | "organization_admin"
+  | "team_lead"
+  | "member";
 
 type AdminSidebarProps = {
   mobileOpen?: boolean;
   onClose?: () => void;
+  role?: UserRole;
 };
 
-const navigation = [
-  {
-    label: "Dashboard",
-    href: "/admin",
-    icon: LayoutDashboard,
+const navigationByRole = {
+  super_admin: [
+    {
+      label: "Dashboard",
+      href: "/admin",
+      icon: LayoutDashboard,
+    },
+    {
+      label: "Organizations",
+      href: "/admin/organizations",
+      icon: Building2,
+    },
+    {
+      label: "Users",
+      href: "/admin/users",
+      icon: Users,
+    },
+    {
+      label: "Settings",
+      href: "/admin/settings",
+      icon: Settings,
+    },
+  ],
+
+  organization_admin: [
+    {
+      label: "Dashboard",
+      href: "/organization",
+      icon: LayoutDashboard,
+    },
+    {
+      label: "Members",
+      href: "/organization/members",
+      icon: Users,
+    },
+    {
+      label: "Teams",
+      href: "/organization/teams",
+      icon: Users,
+    },
+    {
+      label: "Settings",
+      href: "/organization/settings",
+      icon: Settings,
+    },
+  ],
+
+  team_lead: [
+    {
+      label: "Dashboard",
+      href: "/team",
+      icon: LayoutDashboard,
+    },
+    {
+      label: "My Team",
+      href: "/team/members",
+      icon: Users,
+    },
+    {
+      label: "Settings",
+      href: "/team/settings",
+      icon: Settings,
+    },
+  ],
+
+  member: [
+    {
+      label: "Dashboard",
+      href: "/member",
+      icon: LayoutDashboard,
+    },
+    {
+      label: "My Tasks",
+      href: "/member/tasks",
+      icon: Users,
+    },
+    {
+      label: "Settings",
+      href: "/member/settings",
+      icon: Settings,
+    },
+  ],
+};
+
+const roleInfo = {
+  super_admin: {
+    label: "Super Admin",
+    description: "Full access",
+    initials: "SA",
+    section: "Administration",
+    supportHref: "/admin/support",
   },
-  {
-    label: "Organizations",
-    href: "/admin/organizations",
-    icon: Building2,
+
+  organization_admin: {
+    label: "Organization Admin",
+    description: "Organization management",
+    initials: "OA",
+    section: "Organization",
+    supportHref: "/organization/support",
   },
-  {
-    label: "Users",
-    href: "/admin/users",
-    icon: Users,
+
+  team_lead: {
+    label: "Team Lead",
+    description: "Team management",
+    initials: "TL",
+    section: "Workspace",
+    supportHref: "/team/support",
   },
-  {
-    label: "Settings",
-    href: "/admin/settings",
-    icon: Settings,
+
+  member: {
+    label: "Member",
+    description: "Task workspace",
+    initials: "ME",
+    section: "Workspace",
+    supportHref: "/member/support",
   },
-];
+};
 
 export default function AdminSidebar({
   mobileOpen = false,
   onClose,
+  role = "super_admin",
 }: AdminSidebarProps) {
   const pathname = usePathname();
+
+  const navigation = navigationByRole[role];
+  const info = roleInfo[role];
 
   return (
     <aside
@@ -60,7 +166,7 @@ export default function AdminSidebar({
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Administration
+          {info.section}
         </p>
 
         <nav className="space-y-1">
@@ -68,8 +174,11 @@ export default function AdminSidebar({
             const Icon = item.icon;
 
             const isActive =
-              item.href === "/admin"
-                ? pathname === "/admin"
+              item.href === "/admin" ||
+              item.href === "/organization" ||
+              item.href === "/team" ||
+              item.href === "/member"
+                ? pathname === item.href
                 : pathname.startsWith(item.href);
 
             return (
@@ -97,10 +206,10 @@ export default function AdminSidebar({
           </p>
 
           <Link
-            href="/admin/support"
+            href={info.supportHref}
             onClick={onClose}
             className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-              pathname.startsWith("/admin/support")
+              pathname.startsWith(info.supportHref)
                 ? "bg-primary/10 font-semibold text-primary"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
             }`}
@@ -111,21 +220,21 @@ export default function AdminSidebar({
         </div>
       </div>
 
-      {/* Super Admin */}
+      {/* User */}
       <div className="border-t border-border p-4">
         <div className="mb-3 rounded-xl bg-muted/50 p-3">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-              SA
+              {info.initials}
             </div>
 
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">
-                Super Admin
+                {info.label}
               </p>
 
               <p className="truncate text-xs text-muted-foreground">
-                Full access
+                {info.description}
               </p>
             </div>
           </div>

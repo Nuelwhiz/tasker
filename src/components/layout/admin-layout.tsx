@@ -8,22 +8,22 @@ import {
   Menu,
 } from "lucide-react";
 
-import AdminSidebar from "@/components/layout/admin-sidebar";
+import AdminSidebar, {
+  UserRole,
+} from "@/components/layout/admin-sidebar";
+
 import { ThemeToggle } from "@/components/theme-toggle";
 
 type AdminLayoutProps = {
   children: React.ReactNode;
   title?: string;
   subtitle?: string;
+  role?: UserRole;
 };
 
 type Notification = {
   id: number;
-  role:
-    | "super_admin"
-    | "organization_admin"
-    | "team_lead"
-    | "member";
+  role: UserRole;
   title: string;
   message: string;
   time: string;
@@ -56,7 +56,7 @@ const notifications: Notification[] = [
     unread: false,
   },
 
-  // Organization Admin notifications
+  // Organization Admin
   {
     id: 4,
     role: "organization_admin",
@@ -65,8 +65,16 @@ const notifications: Notification[] = [
     time: "10 min ago",
     unread: true,
   },
+  {
+    id: 7,
+    role: "organization_admin",
+    title: "Team Lead assigned",
+    message: "A member has been assigned as a Team Lead.",
+    time: "1 hour ago",
+    unread: false,
+  },
 
-  // Team Lead notifications
+  // Team Lead
   {
     id: 5,
     role: "team_lead",
@@ -76,7 +84,7 @@ const notifications: Notification[] = [
     unread: true,
   },
 
-  // Member notifications
+  // Member
   {
     id: 6,
     role: "member",
@@ -87,32 +95,51 @@ const notifications: Notification[] = [
   },
 ];
 
+const roleDetails = {
+  super_admin: {
+    name: "Super Admin",
+    description: "Platform Owner",
+    initials: "SA",
+  },
+
+  organization_admin: {
+    name: "Organization Admin",
+    description: "Organization Management",
+    initials: "OA",
+  },
+
+  team_lead: {
+    name: "Team Lead",
+    description: "Team Management",
+    initials: "TL",
+  },
+
+  member: {
+    name: "Member",
+    description: "Task Workspace",
+    initials: "ME",
+  },
+};
+
 export default function AdminLayout({
   children,
   title = "Super Admin Dashboard",
   subtitle = "Tasker Administration",
+  role = "super_admin",
 }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] =
-    useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationsList, setNotificationsList] =
     useState(notifications);
 
-  /*
-   * Temporary role.
-   *
-   * Later this will come from the authenticated
-   * Laravel user/session.
-   */
-  const currentUserRole = "super_admin";
+  const currentRole = roleDetails[role];
 
   const userNotifications = useMemo(
     () =>
       notificationsList.filter(
-        (notification) =>
-          notification.role === currentUserRole,
+        (notification) => notification.role === role,
       ),
-    [notificationsList, currentUserRole],
+    [notificationsList, role],
   );
 
   const unreadCount = userNotifications.filter(
@@ -122,7 +149,7 @@ export default function AdminLayout({
   const markAllAsRead = () => {
     setNotificationsList((current) =>
       current.map((notification) =>
-        notification.role === currentUserRole
+        notification.role === role
           ? {
               ...notification,
               unread: false,
@@ -147,9 +174,11 @@ export default function AdminLayout({
 
   return (
     <main className="min-h-screen bg-background text-foreground">
+      {/* Sidebar */}
       <AdminSidebar
         mobileOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        role={role}
       />
 
       {/* Mobile overlay */}
@@ -186,6 +215,7 @@ export default function AdminLayout({
             </div>
           </div>
 
+          {/* Header right */}
           <div className="flex items-center gap-3">
             <ThemeToggle />
 
@@ -194,9 +224,7 @@ export default function AdminLayout({
               <button
                 type="button"
                 onClick={() =>
-                  setNotificationsOpen(
-                    (current) => !current,
-                  )
+                  setNotificationsOpen((current) => !current)
                 }
                 className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition hover:bg-muted hover:text-foreground"
                 aria-label="Notifications"
@@ -213,17 +241,13 @@ export default function AdminLayout({
 
               {notificationsOpen && (
                 <>
-                  {/* Mobile backdrop */}
                   <button
                     type="button"
                     aria-label="Close notifications"
-                    onClick={() =>
-                      setNotificationsOpen(false)
-                    }
+                    onClick={() => setNotificationsOpen(false)}
                     className="fixed inset-0 z-40 cursor-default lg:hidden"
                   />
 
-                  {/* Notification dropdown */}
                   <div className="absolute right-0 top-12 z-50 w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
                     <div className="flex items-center justify-between border-b border-border px-4 py-4">
                       <div>
@@ -253,48 +277,42 @@ export default function AdminLayout({
 
                     <div className="max-h-[360px] overflow-y-auto">
                       {userNotifications.length > 0 ? (
-                        userNotifications.map(
-                          (notification) => (
-                            <button
-                              key={notification.id}
-                              type="button"
-                              onClick={() =>
-                                markAsRead(
-                                  notification.id,
-                                )
-                              }
-                              className={`flex w-full gap-3 border-b border-border px-4 py-4 text-left transition last:border-0 hover:bg-muted/50 ${
-                                notification.unread
-                                  ? "bg-primary/[0.03]"
-                                  : ""
-                              }`}
-                            >
-                              <div className="mt-1.5 shrink-0">
-                                <span
-                                  className={`block h-2.5 w-2.5 rounded-full ${
-                                    notification.unread
-                                      ? "bg-primary"
-                                      : "bg-muted"
-                                  }`}
-                                />
-                              </div>
+                        userNotifications.map((notification) => (
+                          <button
+                            key={notification.id}
+                            type="button"
+                            onClick={() => markAsRead(notification.id)}
+                            className={`flex w-full gap-3 border-b border-border px-4 py-4 text-left transition last:border-0 hover:bg-muted/50 ${
+                              notification.unread
+                                ? "bg-primary/[0.03]"
+                                : ""
+                            }`}
+                          >
+                            <div className="mt-1.5 shrink-0">
+                              <span
+                                className={`block h-2.5 w-2.5 rounded-full ${
+                                  notification.unread
+                                    ? "bg-primary"
+                                    : "bg-muted"
+                                }`}
+                              />
+                            </div>
 
-                              <div className="min-w-0 flex-1">
-                                <p className="text-sm font-semibold">
-                                  {notification.title}
-                                </p>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold">
+                                {notification.title}
+                              </p>
 
-                                <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                                  {notification.message}
-                                </p>
+                              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                                {notification.message}
+                              </p>
 
-                                <p className="mt-1.5 text-[11px] text-muted-foreground">
-                                  {notification.time}
-                                </p>
-                              </div>
-                            </button>
-                          ),
-                        )
+                              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                                {notification.time}
+                              </p>
+                            </div>
+                          </button>
+                        ))
                       ) : (
                         <div className="px-4 py-10 text-center">
                           <Bell className="mx-auto h-8 w-8 text-muted-foreground/50" />
@@ -323,19 +341,19 @@ export default function AdminLayout({
               )}
             </div>
 
-            {/* Admin profile */}
+            {/* Profile */}
             <div className="hidden h-10 items-center gap-3 rounded-xl border border-border bg-card px-3 sm:flex">
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                SA
+                {currentRole.initials}
               </div>
 
               <div className="hidden md:block">
                 <p className="text-xs font-semibold">
-                  Super Admin
+                  {currentRole.name}
                 </p>
 
                 <p className="text-[11px] text-muted-foreground">
-                  Platform Owner
+                  {currentRole.description}
                 </p>
               </div>
 

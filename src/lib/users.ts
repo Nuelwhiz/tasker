@@ -46,6 +46,7 @@ export function inviteUser(data: {
   role: User["role"];
   organization: string;
   organizationId: number;
+  teamId?: number | null;
 }): User {
   const currentUsers = getUsers();
 
@@ -64,6 +65,7 @@ export function inviteUser(data: {
     joinedAt: "Pending",
     organization: data.organization,
     organizationId: data.organizationId,
+    teamId: data.teamId ?? null,
   };
 
   saveUsers([...currentUsers, newUser]);

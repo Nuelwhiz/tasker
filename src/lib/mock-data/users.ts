@@ -7,6 +7,7 @@ export type User = {
   joinedAt: string;
   organization: string;
   organizationId: number;
+  teamId: number | null;
 };
 
 export const users: User[] = [
@@ -19,6 +20,7 @@ export const users: User[] = [
     joinedAt: "Sep 4, 2026",
     organization: "Acme Technologies",
     organizationId: 1,
+    teamId: null,
   },
   {
     id: 2,
@@ -29,6 +31,7 @@ export const users: User[] = [
     joinedAt: "Sep 5, 2026",
     organization: "Acme Technologies",
     organizationId: 1,
+    teamId: 1,
   },
   {
     id: 3,
@@ -39,6 +42,7 @@ export const users: User[] = [
     joinedAt: "Sep 6, 2026",
     organization: "Acme Technologies",
     organizationId: 1,
+    teamId: 1,
   },
   {
     id: 4,
@@ -49,6 +53,7 @@ export const users: User[] = [
     joinedAt: "Sep 6, 2026",
     organization: "Acme Technologies",
     organizationId: 1,
+    teamId: 2,
   },
   {
     id: 5,
@@ -59,5 +64,6 @@ export const users: User[] = [
     joinedAt: "Sep 7, 2026",
     organization: "Acme Technologies",
     organizationId: 1,
+    teamId: 2,
   },
 ];

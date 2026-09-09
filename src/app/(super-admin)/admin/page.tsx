@@ -75,7 +75,7 @@ export default function AdminDashboard() {
           className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
         >
           <Plus className="h-4 w-4" />
-          Create organization
+          Invite organization
         </Link>
       </div>
 
@@ -259,7 +259,7 @@ export default function AdminDashboard() {
           <QuickAction
             href="/admin/organizations/create"
             icon={Plus}
-            title="Create organization"
+            title="Invite organization"
             description="Create a new organization and invite its administrator."
           />
 
