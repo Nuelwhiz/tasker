@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -13,9 +14,12 @@ import {
 } from "lucide-react";
 
 import AdminLayout from "@/components/layout/admin-layout";
-import { organizations } from "@/lib/mock-data/organizations";
-import { teams } from "@/lib/mock-data/teams";
-import { users } from "@/lib/mock-data/users";
+import { getOrganization } from "@/lib/services/organization-service";
+import { getTeam } from "@/lib/services/team-service";
+import { getUsers } from "@/lib/services/user-service";
+import type { Organization } from "@/lib/mock-data/organizations";
+import type { Team } from "@/lib/mock-data/teams";
+import type { User } from "@/lib/mock-data/users";
 
 const ORGANIZATION_ID = 1;
 
@@ -23,15 +27,82 @@ export default function TeamDetailsPage() {
   const params = useParams();
   const teamId = Number(params.id);
 
-  const organization = organizations.find(
-    (organization) => organization.id === ORGANIZATION_ID
-  );
+  const [organization, setOrganization] =
+    useState<Organization | null>(null);
 
-  const team = teams.find(
-    (team) =>
-      team.id === teamId &&
-      team.organizationId === ORGANIZATION_ID
-  );
+  const [team, setTeam] = useState<Team | null>(null);
+
+  const [organizationUsers, setOrganizationUsers] =
+    useState<User[]>([]);
+
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadTeamDetails() {
+      try {
+        const [organizationData, teamData, userData] =
+          await Promise.all([
+            getOrganization(ORGANIZATION_ID),
+            getTeam(teamId, ORGANIZATION_ID),
+            getUsers(ORGANIZATION_ID),
+          ]);
+
+        setOrganization(organizationData);
+        setTeam(teamData);
+        setOrganizationUsers(userData);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    if (!Number.isNaN(teamId)) {
+      loadTeamDetails();
+    } else {
+      setIsLoading(false);
+    }
+  }, [teamId]);
+
+  if (isLoading) {
+    return (
+      <AdminLayout
+        title="Team"
+        subtitle="Loading team details..."
+        role="organization_admin"
+      >
+        <div className="space-y-6">
+          <div className="h-5 w-28 animate-pulse rounded bg-muted" />
+
+          <div className="animate-pulse rounded-2xl border border-border bg-card p-5 sm:p-6">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex items-start gap-4">
+                <div className="h-14 w-14 rounded-2xl bg-muted" />
+
+                <div>
+                  <div className="h-8 w-40 rounded bg-muted" />
+                  <div className="mt-3 h-4 w-72 rounded bg-muted" />
+                  <div className="mt-2 h-4 w-56 rounded bg-muted" />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <div className="h-16 w-28 rounded-xl bg-muted" />
+                <div className="h-16 w-28 rounded-xl bg-muted" />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-5 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-28 animate-pulse rounded-2xl border border-border bg-card"
+              />
+            ))}
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   if (!team) {
     return (
@@ -76,10 +147,6 @@ export default function TeamDetailsPage() {
     );
   }
 
-  const organizationUsers = users.filter(
-    (user) => user.organizationId === ORGANIZATION_ID
-  );
-
   const teamMembers = organizationUsers.filter(
     (user) => user.teamId === team.id
   );
@@ -117,13 +184,23 @@ export default function TeamDetailsPage() {
             Back to Teams
           </Link>
 
-          <Link
-            href={`/organization/teams/${team.id}/edit`}
-            className="inline-flex w-fit items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold transition hover:bg-muted"
-          >
-            <Pencil className="h-4 w-4" />
-            Edit Team
-          </Link>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Link
+              href={`/organization/teams/${team.id}/members`}
+              className="inline-flex w-fit items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground transition-all duration-200 hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
+            >
+              <Users className="h-4 w-4" />
+              Manage Members
+            </Link>
+
+            <Link
+              href={`/organization/teams/${team.id}/edit`}
+              className="inline-flex w-fit items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground transition-all duration-200 hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
+            >
+              <Pencil className="h-4 w-4" />
+              Edit Team
+            </Link>
+          </div>
         </div>
 
         {/* Team Header */}

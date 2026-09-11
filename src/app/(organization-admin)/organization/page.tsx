@@ -1,218 +1,319 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  Activity,
   ArrowRight,
-  Bell,
   CheckCircle2,
   Users,
+  UserRound,
+  UsersRound,
 } from "lucide-react";
 
 import AdminLayout from "@/components/layout/admin-layout";
-import { organizations } from "@/lib/mock-data/organizations";
-import { users } from "@/lib/mock-data/users";
+import { getOrganization } from "@/lib/services/organization-service";
+import { getTeams } from "@/lib/services/team-service";
+import { getUsers } from "@/lib/services/user-service";
+import type { Organization } from "@/lib/mock-data/organizations";
+import type { Team } from "@/lib/mock-data/teams";
+import type { User } from "@/lib/mock-data/users";
 
 const ORGANIZATION_ID = 1;
 
-export default function OrganizationDashboardPage() {
-  const organization = organizations.find(
-    (organization) => organization.id === ORGANIZATION_ID
-  );
+export default function OrganizationTeamsPage() {
+  const [organization, setOrganization] =
+    useState<Organization | null>(null);
 
-  const organizationUsers = users.filter(
-    (user) => user.organizationId === ORGANIZATION_ID
-  );
+  const [organizationTeams, setOrganizationTeams] =
+    useState<Team[]>([]);
 
-  const totalMembers = organizationUsers.length;
+  const [organizationUsers, setOrganizationUsers] =
+    useState<User[]>([]);
 
-  const teamLeads = organizationUsers.filter(
-    (user) => user.role === "Team Lead"
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadTeamsPage() {
+      try {
+        const [organizationData, teamData, userData] =
+          await Promise.all([
+            getOrganization(ORGANIZATION_ID),
+            getTeams(ORGANIZATION_ID),
+            getUsers(ORGANIZATION_ID),
+          ]);
+
+        setOrganization(organizationData);
+        setOrganizationTeams(teamData);
+        setOrganizationUsers(userData);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadTeamsPage();
+  }, []);
+
+  const totalTeams = organizationTeams.length;
+
+  const activeTeams = organizationTeams.filter(
+    (team) => team.status === "Active"
   ).length;
 
-  const activeMembers = organizationUsers.filter(
-    (user) => user.status === "Active"
+  const assignedMembers = organizationUsers.filter(
+    (user) => user.teamId !== null
   ).length;
 
-  const recentMembers = [...organizationUsers]
-    .sort((a, b) => b.id - a.id)
-    .slice(0, 4);
+  const unassignedMembers = organizationUsers.filter(
+    (user) =>
+      user.teamId === null &&
+      user.role !== "Organization Admin"
+  ).length;
+
+  const getTeamLeadName = (teamLeadId: number | null) => {
+    if (!teamLeadId) return "No team lead";
+
+    const teamLead = organizationUsers.find(
+      (user) => user.id === teamLeadId
+    );
+
+    return teamLead?.name ?? "No team lead";
+  };
+
+  const getMemberCount = (teamId: number) => {
+    return organizationUsers.filter(
+      (user) => user.teamId === teamId
+    ).length;
+  };
 
   return (
     <AdminLayout
-      title="Organization Dashboard"
-      subtitle={organization?.name ?? "Tasker Organization"}
+      title="Teams"
+      subtitle={
+        organization
+          ? `${organization.name} team management`
+          : "Manage organization teams"
+      }
       role="organization_admin"
     >
       <div className="space-y-8">
-        {/* Welcome */}
+        {/* Header */}
         <section>
-          <p className="text-sm font-medium text-primary">
-            {organization?.name ?? "Organization"} overview
-          </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-primary">
+                {organization?.name ?? "Organization"} overview
+              </p>
 
-          <h2 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
-            {organization?.name ?? "Your Organization"}
-          </h2>
+              <h2 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
+                Teams
+              </h2>
 
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-            Welcome back 👋 Manage your organization, members, and
-            activities from one place.
-          </p>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+                Manage your organization&apos;s teams, team leads, and
+                members from one place.
+              </p>
+            </div>
+
+            <Link
+              href="/organization/teams/create"
+              className="inline-flex w-fit items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+            >
+              <UsersRound className="h-4 w-4" />
+              Create Team
+            </Link>
+          </div>
         </section>
 
         {/* Stats */}
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <DashboardCard
-            title="Total Members"
-            value={totalMembers.toString()}
-            description="People in your organization"
-            icon={Users}
+            title="Total Teams"
+            value={isLoading ? "—" : totalTeams.toString()}
+            description="Teams in your organization"
+            icon={UsersRound}
           />
 
           <DashboardCard
-            title="Active Members"
-            value={activeMembers.toString()}
-            description="Currently active members"
-            icon={Activity}
-          />
-
-          <DashboardCard
-            title="Team Leads"
-            value={teamLeads.toString()}
-            description="Members leading teams"
-            icon={Users}
-          />
-
-          <DashboardCard
-            title="Completed"
-            value="38"
-            description="Tasks completed"
+            title="Active Teams"
+            value={isLoading ? "—" : activeTeams.toString()}
+            description="Currently active teams"
             icon={CheckCircle2}
+          />
+
+          <DashboardCard
+            title="Assigned Members"
+            value={isLoading ? "—" : assignedMembers.toString()}
+            description="Members assigned to teams"
+            icon={Users}
+          />
+
+          <DashboardCard
+            title="Unassigned Members"
+            value={isLoading ? "—" : unassignedMembers.toString()}
+            description="Members without a team"
+            icon={UserRound}
           />
         </section>
 
-        {/* Main Content */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Members */}
-          <section className="rounded-2xl border border-border bg-card lg:col-span-2">
-            <div className="flex items-center justify-between border-b border-border p-5 sm:p-6">
-              <div>
-                <h3 className="font-bold">Team members</h3>
-
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Manage the people in{" "}
-                  {organization?.name ?? "your organization"}.
-                </p>
-              </div>
-
-              <Link
-                href="/organization/members"
-                className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
-              >
-                View all
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-
-            <div className="divide-y divide-border">
-              {recentMembers.map((member) => (
-                <MemberRow
-                  key={member.id}
-                  name={member.name}
-                  email={member.email}
-                  role={member.role}
-                />
-              ))}
-            </div>
-          </section>
-
-          {/* Quick Actions */}
-          <section className="rounded-2xl border border-border bg-card">
-            <div className="border-b border-border p-5">
-              <h3 className="font-bold">Quick actions</h3>
-
-              <p className="mt-1 text-sm text-muted-foreground">
-                Common organization actions.
-              </p>
-            </div>
-
-            <div className="space-y-2 p-4">
-              <Link
-                href="/organization/members/invite"
-                className="flex items-center justify-between rounded-xl p-3 transition hover:bg-muted"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Users className="h-4 w-4" />
-                  </div>
-
-                  <span className="text-sm font-semibold">
-                    Invite Members
-                  </span>
-                </div>
-
-                <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              </Link>
-
-              <Link
-                href="/organization/members"
-                className="flex items-center justify-between rounded-xl p-3 transition hover:bg-muted"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Users className="h-4 w-4" />
-                  </div>
-
-                  <span className="text-sm font-semibold">
-                    Manage Members
-                  </span>
-                </div>
-
-                <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              </Link>
-
-              <button
-                type="button"
-                className="flex w-full items-center justify-between rounded-xl p-3 text-left transition hover:bg-muted"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Bell className="h-4 w-4" />
-                  </div>
-
-                  <span className="text-sm font-semibold">
-                    Notifications
-                  </span>
-                </div>
-
-                <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              </button>
-            </div>
-          </section>
-        </div>
-
-        {/* Recent Activity */}
-        <section className="rounded-2xl border border-border bg-card">
-          <div className="border-b border-border p-5 sm:p-6">
-            <h3 className="font-bold">Recent activity</h3>
+        {/* Teams */}
+        <section>
+          <div className="mb-4">
+            <h3 className="text-lg font-bold">
+              Organization teams
+            </h3>
 
             <p className="mt-1 text-sm text-muted-foreground">
-              Recent activity within{" "}
-              {organization?.name ?? "your organization"}.
+              Select a team to view its members and roles.
             </p>
           </div>
 
-          <div className="divide-y divide-border">
-            {recentMembers.slice(0, 3).map((member) => (
-              <ActivityItem
-                key={member.id}
-                title={`${member.name} is part of the organization`}
-                description={`${member.role} • ${member.status}`}
-                time={member.joinedAt}
-              />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="animate-pulse rounded-2xl border border-border bg-card p-5"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-11 w-11 rounded-xl bg-muted" />
+
+                      <div>
+                        <div className="h-4 w-24 rounded bg-muted" />
+                        <div className="mt-2 h-3 w-14 rounded bg-muted" />
+                      </div>
+                    </div>
+
+                    <div className="h-5 w-5 rounded bg-muted" />
+                  </div>
+
+                  <div className="mt-5 h-4 w-full rounded bg-muted" />
+                  <div className="mt-2 h-4 w-3/4 rounded bg-muted" />
+
+                  <div className="mt-5 space-y-3 border-t border-border pt-4">
+                    <div className="h-4 w-full rounded bg-muted" />
+                    <div className="h-4 w-full rounded bg-muted" />
+                  </div>
+
+                  <div className="mt-5 h-4 w-full rounded bg-muted" />
+                </div>
+              ))}
+            </div>
+          ) : organizationTeams.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-12 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <UsersRound className="h-6 w-6" />
+              </div>
+
+              <h3 className="mt-4 font-bold">
+                No teams yet
+              </h3>
+
+              <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                Create your first team to start organizing members
+                and assigning responsibilities.
+              </p>
+
+              <Link
+                href="/organization/teams/create"
+                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+              >
+                <UsersRound className="h-4 w-4" />
+                Create Team
+              </Link>
+            </div>
+          ) : (
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {organizationTeams.map((team) => {
+                const memberCount = getMemberCount(team.id);
+                const teamLeadName = getTeamLeadName(team.teamLeadId);
+
+                return (
+                  <Link
+                    key={team.id}
+                    href={`/organization/teams/${team.id}`}
+                    className="group rounded-2xl border border-border bg-card p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                  >
+                    {/* Team Header */}
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                          <UsersRound className="h-5 w-5" />
+                        </div>
+
+                        <div className="min-w-0">
+                          <h3 className="truncate font-bold">
+                            {team.name}
+                          </h3>
+
+                          <span
+                            className={`mt-1 inline-flex items-center gap-1.5 text-xs font-semibold ${
+                              team.status === "Active"
+                                ? "text-success"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                team.status === "Active"
+                                  ? "bg-success"
+                                  : "bg-muted-foreground"
+                              }`}
+                            />
+
+                            {team.status}
+                          </span>
+                        </div>
+                      </div>
+
+                      <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-1 group-hover:text-primary" />
+                    </div>
+
+                    {/* Description */}
+                    <p className="mt-5 line-clamp-2 text-sm leading-6 text-muted-foreground">
+                      {team.description}
+                    </p>
+
+                    {/* Team Details */}
+                    <div className="mt-5 space-y-3 border-t border-border pt-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Users className="h-4 w-4" />
+                          Members
+                        </div>
+
+                        <span className="text-sm font-semibold">
+                          {memberCount}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <UserRound className="h-4 w-4" />
+                          Team Lead
+                        </div>
+
+                        <span className="max-w-[150px] truncate text-right text-sm font-semibold">
+                          {teamLeadName}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
+                      <span className="text-xs text-muted-foreground">
+                        Created {team.createdAt}
+                      </span>
+
+                      <span className="text-sm font-semibold text-primary">
+                        View team
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </section>
       </div>
     </AdminLayout>
@@ -253,89 +354,6 @@ function DashboardCard({
       <p className="mt-4 text-xs text-muted-foreground">
         {description}
       </p>
-    </div>
-  );
-}
-
-function MemberRow({
-  name,
-  email,
-  role,
-}: {
-  name: string;
-  email: string;
-  role: "Organization Admin" | "Team Lead" | "Member";
-}) {
-  const initials = name
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
-  return (
-    <div className="flex items-center justify-between gap-4 p-4 sm:p-5">
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-          {initials}
-        </div>
-
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold">
-            {name}
-          </p>
-
-          <p className="truncate text-xs text-muted-foreground">
-            {email}
-          </p>
-        </div>
-      </div>
-
-      <span
-        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
-          role === "Team Lead"
-            ? "bg-warning/10 text-warning"
-            : role === "Organization Admin"
-              ? "bg-success/10 text-success"
-              : "bg-primary/10 text-primary"
-        }`}
-      >
-        {role}
-      </span>
-    </div>
-  );
-}
-
-function ActivityItem({
-  title,
-  description,
-  time,
-}: {
-  title: string;
-  description: string;
-  time: string;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-4 p-5 sm:p-6">
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <Activity className="h-4 w-4" />
-        </div>
-
-        <div>
-          <p className="text-sm font-semibold">
-            {title}
-          </p>
-
-          <p className="mt-1 text-xs text-muted-foreground">
-            {description}
-          </p>
-        </div>
-      </div>
-
-      <span className="shrink-0 text-xs text-muted-foreground">
-        {time}
-      </span>
     </div>
   );
 }
