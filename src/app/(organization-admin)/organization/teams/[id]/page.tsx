@@ -38,6 +38,8 @@ export default function TeamDetailsPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     async function loadTeamDetails() {
       try {
         const [organizationData, teamData, userData] =
@@ -47,11 +49,23 @@ export default function TeamDetailsPage() {
             getUsers(ORGANIZATION_ID),
           ]);
 
+        if (!isMounted) return;
+
         setOrganization(organizationData);
         setTeam(teamData);
         setOrganizationUsers(userData);
+      } catch (error) {
+        console.error("Failed to load team details:", error);
+
+        if (!isMounted) return;
+
+        setOrganization(null);
+        setTeam(null);
+        setOrganizationUsers([]);
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     }
 
@@ -60,6 +74,10 @@ export default function TeamDetailsPage() {
     } else {
       setIsLoading(false);
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [teamId]);
 
   if (isLoading) {

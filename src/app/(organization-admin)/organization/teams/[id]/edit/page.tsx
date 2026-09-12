@@ -7,12 +7,17 @@ import {
   Save,
   UsersRound,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import AdminLayout from "@/components/layout/admin-layout";
 import { organizations } from "@/lib/mock-data/organizations";
-import { teams } from "@/lib/mock-data/teams";
-import { users } from "@/lib/mock-data/users";
+import { type Team } from "@/lib/mock-data/teams";
+import { type User } from "@/lib/mock-data/users";
+import {
+  getTeam,
+  getTeamLeads,
+  updateTeam,
+} from "@/lib/services/team-service";
 
 const ORGANIZATION_ID = 1;
 
@@ -24,19 +29,44 @@ export default function EditTeamPage() {
     (organization) => organization.id === ORGANIZATION_ID
   );
 
-  const team = teams.find(
-    (team) =>
-      team.id === teamId &&
-      team.organizationId === ORGANIZATION_ID
-  );
+  const [team, setTeam] = useState<Team | null>(null);
+  const [teamLeads, setTeamLeads] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const organizationUsers = users.filter(
-    (user) => user.organizationId === ORGANIZATION_ID
-  );
+  useEffect(() => {
+    async function loadTeamData() {
+      setIsLoading(true);
 
-  const teamLeads = organizationUsers.filter(
-    (user) => user.role === "Team Lead"
-  );
+      const [teamData, teamLeadData] = await Promise.all([
+        getTeam(teamId, ORGANIZATION_ID),
+        getTeamLeads(ORGANIZATION_ID),
+      ]);
+
+      setTeam(teamData);
+      setTeamLeads(teamLeadData);
+      setIsLoading(false);
+    }
+
+    loadTeamData();
+  }, [teamId]);
+
+  if (isLoading) {
+    return (
+      <AdminLayout
+        title="Edit Team"
+        subtitle="Team management"
+        role="organization_admin"
+      >
+        <div className="mx-auto max-w-3xl">
+          <div className="rounded-2xl border border-border bg-card px-6 py-12 text-center">
+            <p className="text-sm text-muted-foreground">
+              Loading team...
+            </p>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   if (!team) {
     return (
@@ -97,9 +127,9 @@ function EditTeamForm({
   organizationName,
   teamLeads,
 }: {
-  team: (typeof teams)[number];
+  team: Team;
   organizationName: string;
-  teamLeads: (typeof users)[number][];
+  teamLeads: User[];
 }) {
   const [name, setName] = useState(team.name);
   const [description, setDescription] = useState(
@@ -109,20 +139,36 @@ function EditTeamForm({
     team.teamLeadId?.toString() ?? ""
   );
   const [status, setStatus] = useState(team.status);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSubmit = (
+  const handleSubmit = async (
     event: React.FormEvent<HTMLFormElement>
   ) => {
     event.preventDefault();
 
-    console.log({
-      id: team.id,
-      organizationId: team.organizationId,
-      name,
-      description,
-      teamLeadId: teamLeadId ? Number(teamLeadId) : null,
-      status,
-    });
+    setIsSaving(true);
+
+    const updatedTeam = await updateTeam(
+      team.id,
+      team.organizationId,
+      {
+        name,
+        description,
+        teamLeadId: teamLeadId
+          ? Number(teamLeadId)
+          : null,
+        status,
+      }
+    );
+
+    setIsSaving(false);
+
+    if (!updatedTeam) {
+      console.error("Failed to update team.");
+      return;
+    }
+
+    window.location.href = `/organization/teams/${team.id}`;
   };
 
   return (
@@ -305,10 +351,11 @@ function EditTeamForm({
 
             <button
               type="submit"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+              disabled={isSaving}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Save className="h-4 w-4" />
-              Save Changes
+              {isSaving ? "Saving..." : "Save Changes"}
             </button>
           </div>
         </form>

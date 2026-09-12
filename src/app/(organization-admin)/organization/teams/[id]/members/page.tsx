@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -14,9 +14,16 @@ import {
 } from "lucide-react";
 
 import AdminLayout from "@/components/layout/admin-layout";
-import { organizations } from "@/lib/mock-data/organizations";
-import { teams } from "@/lib/mock-data/teams";
-import { users } from "@/lib/mock-data/users";
+import { getOrganization } from "@/lib/services/organization-service";
+import { getTeam } from "@/lib/services/team-service";
+import {
+  assignUserToTeam,
+  getAvailableTeamMembers,
+  getTeamMembers,
+  removeUserFromTeam,
+} from "@/lib/services/user-service";
+
+import type { User } from "@/lib/mock-data/users";
 
 const ORGANIZATION_ID = 1;
 
@@ -24,39 +31,146 @@ export default function TeamMembersPage() {
   const params = useParams();
   const teamId = Number(params.id);
 
+  const [organization, setOrganization] = useState<Awaited<
+    ReturnType<typeof getOrganization>
+  >>(null);
+
+  const [team, setTeam] = useState<Awaited<
+    ReturnType<typeof getTeam>
+  >>(null);
+
+  const [teamMembers, setTeamMembers] = useState<User[]>([]);
+  const [availableMembers, setAvailableMembers] = useState<User[]>([]);
+
   const [search, setSearch] = useState("");
   const [showAddMember, setShowAddMember] = useState(false);
 
-  const organization = organizations.find(
-    (organization) => organization.id === ORGANIZATION_ID
-  );
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
 
-  const team = teams.find(
-    (team) =>
-      team.id === teamId && team.organizationId === ORGANIZATION_ID
-  );
+  useEffect(() => {
+    let mounted = true;
 
-  const teamMembers = useMemo(() => {
-    return users.filter(
-      (user) =>
-        user.organizationId === ORGANIZATION_ID && user.teamId === teamId
-    );
+    async function loadData() {
+      try {
+        setLoading(true);
+
+        const [
+          organizationData,
+          teamData,
+          teamMembersData,
+          availableMembersData,
+        ] = await Promise.all([
+          getOrganization(ORGANIZATION_ID),
+          getTeam(teamId, ORGANIZATION_ID),
+          getTeamMembers(ORGANIZATION_ID, teamId),
+          getAvailableTeamMembers(ORGANIZATION_ID, teamId),
+        ]);
+
+        if (!mounted) {
+          return;
+        }
+
+        setOrganization(organizationData);
+        setTeam(teamData);
+        setTeamMembers(teamMembersData);
+        setAvailableMembers(availableMembersData);
+      } catch (error) {
+        console.error("Failed to load team members:", error);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    if (!Number.isNaN(teamId)) {
+      loadData();
+    }
+
+    return () => {
+      mounted = false;
+    };
   }, [teamId]);
 
-  const availableMembers = useMemo(() => {
-    return users.filter((user) => {
-      const matchesOrganization =
-        user.organizationId === ORGANIZATION_ID;
+  const refreshMembers = async () => {
+    const [teamMembersData, availableMembersData] = await Promise.all([
+      getTeamMembers(ORGANIZATION_ID, teamId),
+      getAvailableTeamMembers(ORGANIZATION_ID, teamId),
+    ]);
 
-      const isNotInTeam = user.teamId !== teamId;
+    setTeamMembers(teamMembersData);
+    setAvailableMembers(availableMembersData);
+  };
 
-      const matchesSearch =
-        user.name.toLowerCase().includes(search.toLowerCase()) ||
-        user.email.toLowerCase().includes(search.toLowerCase());
+  const handleAddMember = async (userId: number) => {
+    try {
+      setActionLoading(userId);
 
-      return matchesOrganization && isNotInTeam && matchesSearch;
-    });
-  }, [search, teamId]);
+      const updatedUser = await assignUserToTeam(
+        userId,
+        ORGANIZATION_ID,
+        teamId
+      );
+
+      if (!updatedUser) {
+        return;
+      }
+
+      await refreshMembers();
+    } catch (error) {
+      console.error("Failed to add member:", error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleRemoveMember = async (userId: number) => {
+    try {
+      setActionLoading(userId);
+
+      const updatedUser = await removeUserFromTeam(
+        userId,
+        ORGANIZATION_ID
+      );
+
+      if (!updatedUser) {
+        return;
+      }
+
+      await refreshMembers();
+    } catch (error) {
+      console.error("Failed to remove member:", error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const filteredAvailableMembers = availableMembers.filter((user) => {
+    const searchTerm = search.toLowerCase();
+
+    return (
+      user.name.toLowerCase().includes(searchTerm) ||
+      user.email.toLowerCase().includes(searchTerm)
+    );
+  });
+
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="space-y-6">
+          <div className="h-24 animate-pulse rounded-xl bg-muted" />
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="h-32 animate-pulse rounded-xl bg-muted" />
+            <div className="h-32 animate-pulse rounded-xl bg-muted" />
+          </div>
+
+          <div className="h-96 animate-pulse rounded-xl bg-muted" />
+        </div>
+      </AdminLayout>
+    );
+  }
 
   if (!organization || !team) {
     return (
@@ -88,21 +202,9 @@ export default function TeamMembersPage() {
     );
   }
 
-  const handleAddMember = (userId: number) => {
-    console.log("Add member:", {
-      userId,
-      teamId: team.id,
-    });
-
-    setShowAddMember(false);
-  };
-
-  const handleRemoveMember = (userId: number) => {
-    console.log("Remove member:", {
-      userId,
-      teamId: team.id,
-    });
-  };
+  const teamLead = teamMembers.find(
+    (user) => user.id === team.teamLeadId
+  );
 
   return (
     <AdminLayout>
@@ -133,7 +235,7 @@ export default function TeamMembersPage() {
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
           >
             <UserPlus className="h-4 w-4" />
-            Add Member
+            {showAddMember ? "Close" : "Add Member"}
           </button>
         </div>
 
@@ -148,12 +250,7 @@ export default function TeamMembersPage() {
 
           <DashboardCard
             title="Team Lead"
-            value={
-              team.teamLeadId
-                ? users.find((user) => user.id === team.teamLeadId)?.name ??
-                  "Assigned"
-                : "Not assigned"
-            }
+            value={teamLead?.name ?? "Not assigned"}
             icon={CheckCircle2}
             description="Current team lead"
           />
@@ -167,6 +264,7 @@ export default function TeamMembersPage() {
                 <h2 className="text-base font-semibold text-foreground">
                   Add Member
                 </h2>
+
                 <p className="mt-1 text-sm text-muted-foreground">
                   Select an organization member to assign to this team.
                 </p>
@@ -186,8 +284,8 @@ export default function TeamMembersPage() {
             </div>
 
             <div className="mt-5 divide-y divide-border rounded-lg border border-border">
-              {availableMembers.length > 0 ? (
-                availableMembers.map((user) => (
+              {filteredAvailableMembers.length > 0 ? (
+                filteredAvailableMembers.map((user) => (
                   <div
                     key={user.id}
                     className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
@@ -201,6 +299,7 @@ export default function TeamMembersPage() {
                         <p className="text-sm font-medium text-foreground">
                           {user.name}
                         </p>
+
                         <p className="text-xs text-muted-foreground">
                           {user.email}
                         </p>
@@ -209,11 +308,12 @@ export default function TeamMembersPage() {
 
                     <button
                       type="button"
+                      disabled={actionLoading === user.id}
                       onClick={() => handleAddMember(user.id)}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <UserPlus className="h-4 w-4" />
-                      Add
+                      {actionLoading === user.id ? "Adding..." : "Add"}
                     </button>
                   </div>
                 ))
@@ -283,12 +383,16 @@ export default function TeamMembersPage() {
                     {user.id !== team.teamLeadId && (
                       <button
                         type="button"
+                        disabled={actionLoading === user.id}
                         onClick={() => handleRemoveMember(user.id)}
-                        className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-destructive transition hover:bg-destructive/10"
+                        className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-destructive transition hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <UserMinus className="h-4 w-4" />
+
                         <span className="hidden sm:inline">
-                          Remove
+                          {actionLoading === user.id
+                            ? "Removing..."
+                            : "Remove"}
                         </span>
                       </button>
                     )}

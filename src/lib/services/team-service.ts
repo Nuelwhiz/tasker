@@ -1,4 +1,5 @@
 import { teams, type Team } from "@/lib/mock-data/teams";
+import { users, type User } from "@/lib/mock-data/users";
 
 const STORAGE_KEY = "tasker-teams";
 
@@ -56,6 +57,16 @@ export async function getTeam(
   );
 
   return team ?? null;
+}
+
+export async function getTeamLeads(
+  organizationId: number
+): Promise<User[]> {
+  return users.filter(
+    (user) =>
+      user.organizationId === organizationId &&
+      user.role === "Team Lead"
+  );
 }
 
 export async function createTeam(

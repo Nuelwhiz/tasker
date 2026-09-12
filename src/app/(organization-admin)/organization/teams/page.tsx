@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -10,24 +11,56 @@ import {
 } from "lucide-react";
 
 import AdminLayout from "@/components/layout/admin-layout";
-import { organizations } from "@/lib/mock-data/organizations";
-import { teams } from "@/lib/mock-data/teams";
-import { users } from "@/lib/mock-data/users";
+import { getOrganization } from "@/lib/services/organization-service";
+import { getTeams } from "@/lib/services/team-service";
+import { getUsers } from "@/lib/services/user-service";
+
+import type { Organization } from "@/lib/mock-data/organizations";
+import type { Team } from "@/lib/mock-data/teams";
+import type { User } from "@/lib/mock-data/users";
 
 const ORGANIZATION_ID = 1;
 
 export default function OrganizationTeamsPage() {
-  const organization = organizations.find(
-    (organization) => organization.id === ORGANIZATION_ID
-  );
+  const [organization, setOrganization] =
+    useState<Organization | null>(null);
 
-  const organizationTeams = teams.filter(
-    (team) => team.organizationId === ORGANIZATION_ID
-  );
+  const [organizationTeams, setOrganizationTeams] =
+    useState<Team[]>([]);
 
-  const organizationUsers = users.filter(
-    (user) => user.organizationId === ORGANIZATION_ID
-  );
+  const [organizationUsers, setOrganizationUsers] =
+    useState<User[]>([]);
+
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadTeamsPage() {
+      try {
+        const [
+          organizationData,
+          teamsData,
+          usersData,
+        ] = await Promise.all([
+          getOrganization(ORGANIZATION_ID),
+          getTeams(ORGANIZATION_ID),
+          getUsers(ORGANIZATION_ID),
+        ]);
+
+        setOrganization(organizationData);
+        setOrganizationTeams(teamsData);
+        setOrganizationUsers(usersData);
+      } catch (error) {
+        console.error(
+          "Failed to load organization teams:",
+          error
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadTeamsPage();
+  }, []);
 
   const totalTeams = organizationTeams.length;
 
@@ -44,7 +77,9 @@ export default function OrganizationTeamsPage() {
   ).length;
 
   const getTeamLeadName = (teamLeadId: number | null) => {
-    if (!teamLeadId) return "No team lead";
+    if (!teamLeadId) {
+      return "No team lead";
+    }
 
     const teamLead = organizationUsers.find(
       (user) => user.id === teamLeadId
@@ -141,7 +176,16 @@ export default function OrganizationTeamsPage() {
             </p>
           </div>
 
-          {organizationTeams.length === 0 ? (
+          {isLoading ? (
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {[1, 2, 3].map((item) => (
+                <div
+                  key={item}
+                  className="h-64 animate-pulse rounded-2xl border border-border bg-card"
+                />
+              ))}
+            </div>
+          ) : organizationTeams.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-12 text-center">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <UsersRound className="h-6 w-6" />
@@ -168,7 +212,9 @@ export default function OrganizationTeamsPage() {
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {organizationTeams.map((team) => {
                 const memberCount = getMemberCount(team.id);
-                const teamLeadName = getTeamLeadName(team.teamLeadId);
+                const teamLeadName = getTeamLeadName(
+                  team.teamLeadId
+                );
 
                 return (
                   <Link
