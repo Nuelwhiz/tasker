@@ -154,3 +154,20 @@ export async function getTeamLeads(
       user.role === "Team Lead"
   );
 }
+
+export async function createUser(
+  data: Omit<User, "id">
+): Promise<User> {
+  const storedUsers = getStoredUsers();
+
+  const newUser: User = {
+    ...data,
+    id: Date.now(),
+  };
+
+  const updatedUsers = [...storedUsers, newUser];
+
+  saveUsers(updatedUsers);
+
+  return newUser;
+}

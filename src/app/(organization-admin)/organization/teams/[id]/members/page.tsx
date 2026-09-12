@@ -157,7 +157,7 @@ export default function TeamMembersPage() {
 
   if (loading) {
     return (
-      <AdminLayout>
+      <AdminLayout role="organization_admin">
         <div className="space-y-6">
           <div className="h-24 animate-pulse rounded-xl bg-muted" />
 
@@ -174,7 +174,7 @@ export default function TeamMembersPage() {
 
   if (!organization || !team) {
     return (
-      <AdminLayout>
+      <AdminLayout role="organization_admin">
         <div className="flex min-h-[60vh] items-center justify-center px-4">
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
@@ -207,7 +207,7 @@ export default function TeamMembersPage() {
   );
 
   return (
-    <AdminLayout>
+    <AdminLayout role="organization_admin">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
