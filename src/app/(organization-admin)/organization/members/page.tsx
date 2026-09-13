@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { Search, UserPlus, Users } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import AdminLayout from "@/components/layout/admin-layout";
 import { organizations } from "@/lib/mock-data/organizations";
-import { users } from "@/lib/mock-data/users";
+import { getUsers } from "@/lib/services/user-service";
+import type { User } from "@/lib/mock-data/users";
 
 const ORGANIZATION_ID = 1;
 
@@ -23,17 +24,33 @@ export default function OrganizationMembersPage() {
     "All" | MemberStatus
   >("All");
 
+  const [organizationUsers, setOrganizationUsers] = useState<User[]>(
+    []
+  );
+
+  const [loading, setLoading] = useState(true);
+
   const organization = organizations.find(
     (organization) => organization.id === ORGANIZATION_ID
   );
 
-  const organizationUsers = useMemo(
-    () =>
-      users.filter(
-        (user) => user.organizationId === ORGANIZATION_ID
-      ),
-    []
-  );
+  useEffect(() => {
+    async function loadUsers() {
+      try {
+        setLoading(true);
+
+        const users = await getUsers(ORGANIZATION_ID);
+
+        setOrganizationUsers(users);
+      } catch (error) {
+        console.error("Failed to load organization members:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadUsers();
+  }, []);
 
   const filteredUsers = useMemo(() => {
     return organizationUsers.filter((user) => {
@@ -222,89 +239,106 @@ export default function OrganizationMembersPage() {
               </thead>
 
               <tbody className="divide-y divide-border">
-                {filteredUsers.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="group transition-colors hover:bg-muted/30"
-                  >
-                    <td className="px-5 py-4">
-                      <Link
-                        href={`/organization/members/${user.id}`}
-                        className="flex items-center gap-3"
-                      >
-                        <Avatar name={user.name} />
-
-                        <div>
-                          <p className="text-sm font-semibold transition-colors group-hover:text-primary">
-                            {user.name}
-                          </p>
-
-                          <p className="text-xs text-muted-foreground">
-                            {user.email}
-                          </p>
-                        </div>
-                      </Link>
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <RoleBadge role={user.role} />
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <StatusBadge status={user.status} />
-                    </td>
-
-                    <td className="px-5 py-4 text-sm text-muted-foreground">
-                      {user.joinedAt}
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="px-5 py-12 text-center text-sm text-muted-foreground"
+                    >
+                      Loading members...
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredUsers.map((user) => (
+                    <tr
+                      key={user.id}
+                      className="group transition-colors hover:bg-muted/30"
+                    >
+                      <td className="px-5 py-4">
+                        <Link
+                          href={`/organization/members/${user.id}`}
+                          className="flex items-center gap-3"
+                        >
+                          <Avatar name={user.name} />
+
+                          <div>
+                            <p className="text-sm font-semibold transition-colors group-hover:text-primary">
+                              {user.name}
+                            </p>
+
+                            <p className="text-xs text-muted-foreground">
+                              {user.email}
+                            </p>
+                          </div>
+                        </Link>
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <RoleBadge role={user.role} />
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <StatusBadge status={user.status} />
+                      </td>
+
+                      <td className="px-5 py-4 text-sm text-muted-foreground">
+                        {user.joinedAt}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
 
-          {filteredUsers.length === 0 && (
+          {!loading && filteredUsers.length === 0 && (
             <EmptyState />
           )}
         </section>
 
         {/* Mobile Cards */}
         <section className="space-y-3 md:hidden">
-          {filteredUsers.map((user) => (
-            <Link
-              key={user.id}
-              href={`/organization/members/${user.id}`}
-              className="block rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:bg-muted/20 hover:shadow-sm"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <Avatar name={user.name} />
+          {loading ? (
+            <div className="rounded-2xl border border-border bg-card px-6 py-12 text-center text-sm text-muted-foreground">
+              Loading members...
+            </div>
+          ) : (
+            filteredUsers.map((user) => (
+              <Link
+                key={user.id}
+                href={`/organization/members/${user.id}`}
+                className="block rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:bg-muted/20 hover:shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Avatar name={user.name} />
 
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">
-                      {user.name}
-                    </p>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">
+                        {user.name}
+                      </p>
 
-                    <p className="truncate text-xs text-muted-foreground">
-                      {user.email}
-                    </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {user.email}
+                      </p>
+                    </div>
                   </div>
+
+                  <StatusBadge status={user.status} />
                 </div>
 
-                <StatusBadge status={user.status} />
-              </div>
+                <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+                  <RoleBadge role={user.role} />
 
-              <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
-                <RoleBadge role={user.role} />
+                  <span className="text-xs text-muted-foreground">
+                    {user.joinedAt}
+                  </span>
+                </div>
+              </Link>
+            ))
+          )}
 
-                <span className="text-xs text-muted-foreground">
-                  {user.joinedAt}
-                </span>
-              </div>
-            </Link>
-          ))}
-
-          {filteredUsers.length === 0 && (
+          {!loading && filteredUsers.length === 0 && (
             <EmptyState />
           )}
         </section>

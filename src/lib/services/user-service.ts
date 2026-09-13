@@ -27,7 +27,10 @@ function saveUsers(updatedUsers: User[]) {
     return;
   }
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUsers));
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(updatedUsers)
+  );
 }
 
 export async function getUsers(
@@ -77,7 +80,7 @@ export async function getAvailableTeamMembers(
   return storedUsers.filter(
     (user) =>
       user.organizationId === organizationId &&
-      user.teamId !== teamId &&
+      user.teamId === null &&
       user.role !== "Organization Admin"
   );
 }
@@ -99,7 +102,7 @@ export async function assignUserToTeam(
     return null;
   }
 
-  const updatedUser = {
+  const updatedUser: User = {
     ...storedUsers[userIndex],
     teamId,
   };
@@ -129,7 +132,7 @@ export async function removeUserFromTeam(
     return null;
   }
 
-  const updatedUser = {
+  const updatedUser: User = {
     ...storedUsers[userIndex],
     teamId: null,
   };
