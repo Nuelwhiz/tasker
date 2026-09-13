@@ -27,10 +27,7 @@ function saveUsers(updatedUsers: User[]) {
     return;
   }
 
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(updatedUsers)
-  );
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUsers));
 }
 
 export async function getUsers(
@@ -173,4 +170,58 @@ export async function createUser(
   saveUsers(updatedUsers);
 
   return newUser;
+}
+
+export async function updateUser(
+  userId: number,
+  organizationId: number,
+  data: Partial<Omit<User, "id" | "organizationId">>
+): Promise<User | null> {
+  const storedUsers = getStoredUsers();
+
+  const userIndex = storedUsers.findIndex(
+    (user) =>
+      user.id === userId &&
+      user.organizationId === organizationId
+  );
+
+  if (userIndex === -1) {
+    return null;
+  }
+
+  const updatedUser: User = {
+    ...storedUsers[userIndex],
+    ...data,
+  };
+
+  const updatedUsers = [...storedUsers];
+
+  updatedUsers[userIndex] = updatedUser;
+
+  saveUsers(updatedUsers);
+
+  return updatedUser;
+}
+
+export async function deleteUser(
+  userId: number,
+  organizationId: number
+): Promise<boolean> {
+  const storedUsers = getStoredUsers();
+
+  const updatedUsers = storedUsers.filter(
+    (user) =>
+      !(
+        user.id === userId &&
+        user.organizationId === organizationId
+      )
+  );
+
+  if (updatedUsers.length === storedUsers.length) {
+    return false;
+  }
+
+  saveUsers(updatedUsers);
+
+  return true;
 }

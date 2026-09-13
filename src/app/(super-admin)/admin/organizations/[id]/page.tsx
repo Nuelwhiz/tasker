@@ -18,6 +18,7 @@ import {
   Trash2,
   User,
   Users,
+  X,
   XCircle,
 } from "lucide-react";
 
@@ -40,8 +41,11 @@ export default function OrganizationDetailsPage() {
 
   const [showActions, setShowActions] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   const [organization, setOrganization] =
     useState<Organization | null>(null);
+
   const [status, setStatus] =
     useState<OrganizationStatus | null>(null);
 
@@ -113,12 +117,19 @@ export default function OrganizationDetailsPage() {
   };
 
   const handleDelete = () => {
-    deleteOrganization(organizationId);
+    setDeleting(true);
 
-    setShowDeleteConfirm(false);
-    setShowActions(false);
+    try {
+      deleteOrganization(organizationId);
 
-    router.push("/admin/organizations");
+      setShowDeleteConfirm(false);
+      setShowActions(false);
+
+      router.push("/admin/organizations");
+    } catch (error) {
+      console.error("Failed to delete organization:", error);
+      setDeleting(false);
+    }
   };
 
   return (
@@ -414,41 +425,91 @@ export default function OrganizationDetailsPage() {
         </div>
       </section>
 
-      {/* Delete confirmation modal */}
+      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-danger/10 text-danger">
-              <Trash2 className="h-6 w-6" />
-            </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => {
+              if (!deleting) {
+                setShowDeleteConfirm(false);
+              }
+            }}
+          />
 
-            <h3 className="mt-5 text-lg font-bold">
-              Delete organization?
-            </h3>
+          {/* Modal */}
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-organization-title"
+            className="relative z-10 w-full max-w-md rounded-xl border border-border bg-card shadow-xl"
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-border px-6 py-5">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/10 text-red-500">
+                  <Trash2 className="h-5 w-5" />
+                </div>
 
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Are you sure you want to delete{" "}
-              <span className="font-semibold text-foreground">
-                {organization.name}
-              </span>
-              ? This action cannot be undone.
-            </p>
+                <div>
+                  <h2
+                    id="delete-organization-title"
+                    className="font-semibold text-foreground"
+                  >
+                    Delete Organization
+                  </h2>
 
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+
               <button
                 type="button"
+                disabled={deleting}
                 onClick={() => setShowDeleteConfirm(false)}
-                className="rounded-lg border border-border px-4 py-2.5 text-sm font-semibold transition hover:bg-muted"
+                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="px-6 py-5">
+              <p className="text-sm leading-6 text-muted-foreground">
+                Are you sure you want to delete{" "}
+                <span className="font-medium text-foreground">
+                  {organization.name}
+                </span>
+                ? This will permanently remove this organization
+                and its associated data.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col-reverse gap-3 border-t border-border px-6 py-5 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setShowDeleteConfirm(false)}
+                className="inline-flex items-center justify-center rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancel
               </button>
 
               <button
                 type="button"
+                disabled={deleting}
                 onClick={handleDelete}
-                className="rounded-lg bg-danger px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Delete organization
+                <Trash2 className="h-4 w-4" />
+                {deleting
+                  ? "Deleting..."
+                  : "Delete Organization"}
               </button>
             </div>
           </div>
