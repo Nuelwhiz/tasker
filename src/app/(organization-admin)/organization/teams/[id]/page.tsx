@@ -443,7 +443,7 @@ function InfoStat({
         <span className="text-xs">{label}</span>
       </div>
 
-      <p className="mt-1 max-w-[160px] truncate text-sm font-semibold">
+      <p className="mt-1 max-w-40 truncate text-sm font-semibold">
         {value}
       </p>
     </div>

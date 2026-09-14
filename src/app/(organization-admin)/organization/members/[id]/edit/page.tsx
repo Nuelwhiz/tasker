@@ -99,7 +99,7 @@ export default function EditMemberPage() {
         <div className="space-y-6">
           <div className="h-8 w-40 animate-pulse rounded-lg bg-muted" />
 
-          <div className="h-[500px] animate-pulse rounded-xl border border-border bg-card" />
+          <div className="h-125 animate-pulse rounded-xl border border-border bg-card" />
         </div>
       </AdminLayout>
     );

@@ -281,7 +281,7 @@ export default function OrganizationTeamsPage() {
                           Team Lead
                         </div>
 
-                        <span className="max-w-[150px] truncate text-right text-sm font-semibold">
+                        <span className="max-w-37.5 truncate text-right text-sm font-semibold">
                           {teamLeadName}
                         </span>
                       </div>

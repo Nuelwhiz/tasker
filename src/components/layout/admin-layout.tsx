@@ -275,7 +275,7 @@ export default function AdminLayout({
                       )}
                     </div>
 
-                    <div className="max-h-[360px] overflow-y-auto">
+                    <div className="max-h-90 overflow-y-auto">
                       {userNotifications.length > 0 ? (
                         userNotifications.map((notification) => (
                           <button
@@ -284,7 +284,7 @@ export default function AdminLayout({
                             onClick={() => markAsRead(notification.id)}
                             className={`flex w-full gap-3 border-b border-border px-4 py-4 text-left transition last:border-0 hover:bg-muted/50 ${
                               notification.unread
-                                ? "bg-primary/[0.03]"
+                                ? "bg-primary/3"
                                 : ""
                             }`}
                           >
