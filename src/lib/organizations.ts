@@ -34,9 +34,25 @@ export function getOrganizations(): Organization[] {
   }
 }
 
+export function getOrganization(
+  id: number
+): Organization | null {
+  const organizations = getOrganizations();
+
+  return (
+    organizations.find(
+      (organization) => organization.id === id
+    ) ?? null
+  );
+}
+
 export function saveOrganizations(
   organizations: Organization[]
 ) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
   localStorage.setItem(
     STORAGE_KEY,
     JSON.stringify(organizations)
@@ -44,7 +60,10 @@ export function saveOrganizations(
 }
 
 export function createOrganization(
-  data: Omit<Organization, "id" | "users" | "status" | "created">
+  data: Omit<
+    Organization,
+    "id" | "users" | "status" | "created"
+  >
 ): Organization {
   const currentOrganizations = getOrganizations();
 
@@ -97,9 +116,10 @@ export function updateOrganizationStatus(
 export function deleteOrganization(id: number) {
   const currentOrganizations = getOrganizations();
 
-  const updatedOrganizations = currentOrganizations.filter(
-    (organization) => organization.id !== id
-  );
+  const updatedOrganizations =
+    currentOrganizations.filter(
+      (organization) => organization.id !== id
+    );
 
   saveOrganizations(updatedOrganizations);
 }

@@ -42,6 +42,7 @@ export default function OrganizationDetailsPage() {
   const [showActions, setShowActions] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [organization, setOrganization] =
     useState<Organization | null>(null);
@@ -62,7 +63,69 @@ export default function OrganizationDetailsPage() {
       setOrganization(foundOrganization);
       setStatus(foundOrganization.status);
     }
+
+    setLoading(false);
   }, [organizationId]);
+
+  if (loading) {
+    return (
+      <AdminLayout
+        title="Organization Details"
+        subtitle="Tasker Administration"
+      >
+        <div className="animate-pulse">
+          {/* Breadcrumb skeleton */}
+          <div className="mb-6 flex items-center gap-2">
+            <div className="h-4 w-16 rounded bg-muted" />
+            <div className="h-4 w-4 rounded bg-muted" />
+            <div className="h-4 w-24 rounded bg-muted" />
+            <div className="h-4 w-4 rounded bg-muted" />
+            <div className="h-4 w-32 rounded bg-muted" />
+          </div>
+
+          {/* Back button skeleton */}
+          <div className="mb-6 h-5 w-36 rounded bg-muted" />
+
+          {/* Header skeleton */}
+          <div className="mb-8 flex items-start justify-between">
+            <div className="flex items-start gap-4">
+              <div className="h-14 w-14 rounded-xl bg-muted" />
+
+              <div>
+                <div className="h-7 w-48 rounded bg-muted" />
+                <div className="mt-2 h-4 w-64 rounded bg-muted" />
+              </div>
+            </div>
+
+            <div className="h-10 w-24 rounded-lg bg-muted" />
+          </div>
+
+          {/* Stats skeleton */}
+          <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((item) => (
+              <div
+                key={item}
+                className="rounded-xl border border-border bg-card p-5"
+              >
+                <div className="mb-4 h-10 w-10 rounded-lg bg-muted" />
+                <div className="h-4 w-24 rounded bg-muted" />
+                <div className="mt-2 h-6 w-20 rounded bg-muted" />
+              </div>
+            ))}
+          </div>
+
+          {/* Main content skeleton */}
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="h-64 rounded-xl border border-border bg-card lg:col-span-2" />
+            <div className="h-64 rounded-xl border border-border bg-card" />
+          </div>
+
+          {/* Members skeleton */}
+          <div className="mt-6 h-48 rounded-xl border border-border bg-card" />
+        </div>
+      </AdminLayout>
+    );
+  }
 
   if (!organization || !status) {
     return (
