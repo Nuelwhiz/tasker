@@ -23,7 +23,26 @@ export function getOrganizations(): Organization[] {
   }
 
   try {
-    return JSON.parse(stored) as Organization[];
+    const organizations = JSON.parse(stored) as Organization[];
+
+    // If existing localStorage data is invalid or doesn't
+    // contain the current mock organizations, reset it.
+    if (
+      !Array.isArray(organizations) ||
+      organizations.length === 0 ||
+      !organizations.some(
+        (organization) => organization.id === 1
+      )
+    ) {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(initialOrganizations)
+      );
+
+      return initialOrganizations;
+    }
+
+    return organizations;
   } catch {
     localStorage.setItem(
       STORAGE_KEY,
