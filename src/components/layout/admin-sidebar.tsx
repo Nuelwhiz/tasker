@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Building2,
+  CalendarDays,
   CircleHelp,
   LayoutDashboard,
   Settings,
@@ -63,6 +64,11 @@ const navigationByRole = {
       label: "Teams",
       href: "/organization/teams",
       icon: Users,
+    },
+    {
+      label: "Meetings",
+      href: "/organization/meetings",
+      icon: CalendarDays,
     },
     {
       label: "Settings",
