@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   Bell,
   Check,
@@ -14,6 +15,16 @@ import AdminSidebar, {
 
 import { ThemeToggle } from "@/components/theme-toggle";
 
+import {
+  getNotifications,
+  markAllNotificationsAsRead,
+  markNotificationAsRead,
+} from "@/lib/services/notification-service";
+
+import { checkMeetingNotifications } from "@/lib/services/meeting-notification-service";
+
+import type { Notification } from "@/lib/mock-data/notifications";
+
 type AdminLayoutProps = {
   children: React.ReactNode;
   title?: string;
@@ -21,79 +32,7 @@ type AdminLayoutProps = {
   role?: UserRole;
 };
 
-type Notification = {
-  id: number;
-  role: UserRole;
-  title: string;
-  message: string;
-  time: string;
-  unread: boolean;
-};
-
-const notifications: Notification[] = [
-  {
-    id: 1,
-    role: "super_admin",
-    title: "New organization created",
-    message: "A new organization has been added to Tasker.",
-    time: "5 min ago",
-    unread: true,
-  },
-  {
-    id: 2,
-    role: "super_admin",
-    title: "New user registered",
-    message: "A new user has joined the Tasker platform.",
-    time: "25 min ago",
-    unread: true,
-  },
-  {
-    id: 3,
-    role: "super_admin",
-    title: "Organization admin assigned",
-    message: "An organization admin has been assigned.",
-    time: "1 hour ago",
-    unread: false,
-  },
-
-  // Organization Admin
-  {
-    id: 4,
-    role: "organization_admin",
-    title: "New member joined",
-    message: "A new member has joined your organization.",
-    time: "10 min ago",
-    unread: true,
-  },
-  {
-    id: 7,
-    role: "organization_admin",
-    title: "Team Lead assigned",
-    message: "A member has been assigned as a Team Lead.",
-    time: "1 hour ago",
-    unread: false,
-  },
-
-  // Team Lead
-  {
-    id: 5,
-    role: "team_lead",
-    title: "New task assigned",
-    message: "A new task has been assigned to your team.",
-    time: "15 min ago",
-    unread: true,
-  },
-
-  // Member
-  {
-    id: 6,
-    role: "member",
-    title: "Task assigned to you",
-    message: "You have been assigned a new task.",
-    time: "20 min ago",
-    unread: true,
-  },
-];
+const CURRENT_USER_ID = 1;
 
 const roleDetails = {
   super_admin: {
@@ -121,54 +60,161 @@ const roleDetails = {
   },
 };
 
+function formatNotificationTime(
+  createdAt: string
+): string {
+  const created = new Date(createdAt);
+  const now = new Date();
+
+  const difference =
+    now.getTime() - created.getTime();
+
+  const seconds = Math.floor(difference / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (seconds < 60) {
+    return "Just now";
+  }
+
+  if (minutes < 60) {
+    return `${minutes} min ago`;
+  }
+
+  if (hours < 24) {
+    return `${hours} ${
+      hours === 1 ? "hour" : "hours"
+    } ago`;
+  }
+
+  if (days < 7) {
+    return `${days} ${
+      days === 1 ? "day" : "days"
+    } ago`;
+  }
+
+  return created.toLocaleDateString();
+}
+
 export default function AdminLayout({
   children,
   title = "Super Admin Dashboard",
   subtitle = "Tasker Administration",
   role = "super_admin",
 }: AdminLayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] =
+    useState(false);
+
+  const [notificationsOpen, setNotificationsOpen] =
+    useState(false);
+
   const [notificationsList, setNotificationsList] =
-    useState(notifications);
+    useState<Notification[]>([]);
 
   const currentRole = roleDetails[role];
 
-  const userNotifications = useMemo(
+  /*
+   * Check for meeting notifications.
+   *
+   * For now we use a mock user ID.
+   * This will later come from authentication.
+   */
+  useEffect(() => {
+    if (role !== "organization_admin") {
+      return;
+    }
+
+    const checkNotifications = async () => {
+      await checkMeetingNotifications(
+        CURRENT_USER_ID
+      );
+
+      const updatedNotifications =
+        await getNotifications(
+          CURRENT_USER_ID
+        );
+
+      setNotificationsList(
+        updatedNotifications
+      );
+    };
+
+    // Check immediately.
+    checkNotifications();
+
+    // Check every 30 seconds.
+    const interval = setInterval(
+      checkNotifications,
+      30_000
+    );
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [role]);
+
+  /*
+   * Load notifications for other roles.
+   */
+  useEffect(() => {
+    if (role === "organization_admin") {
+      return;
+    }
+
+    const loadNotifications = async () => {
+      const userNotifications =
+        await getNotifications(
+          CURRENT_USER_ID
+        );
+
+      setNotificationsList(
+        userNotifications
+      );
+    };
+
+    loadNotifications();
+  }, [role]);
+
+  const unreadCount = useMemo(
     () =>
       notificationsList.filter(
-        (notification) => notification.role === role,
-      ),
-    [notificationsList, role],
+        (notification) =>
+          !notification.read
+      ).length,
+    [notificationsList]
   );
 
-  const unreadCount = userNotifications.filter(
-    (notification) => notification.unread,
-  ).length;
+  const markAllAsRead = async () => {
+    await markAllNotificationsAsRead(
+      CURRENT_USER_ID
+    );
 
-  const markAllAsRead = () => {
     setNotificationsList((current) =>
-      current.map((notification) =>
-        notification.role === role
-          ? {
-              ...notification,
-              unread: false,
-            }
-          : notification,
-      ),
+      current.map((notification) => ({
+        ...notification,
+        read: true,
+      }))
     );
   };
 
-  const markAsRead = (id: number) => {
+  const markAsRead = async (
+    id: number
+  ) => {
+    await markNotificationAsRead(
+      id,
+      CURRENT_USER_ID
+    );
+
     setNotificationsList((current) =>
       current.map((notification) =>
         notification.id === id
           ? {
               ...notification,
-              unread: false,
+              read: true,
             }
-          : notification,
-      ),
+          : notification
+      )
     );
   };
 
@@ -186,7 +232,9 @@ export default function AdminLayout({
         <button
           type="button"
           aria-label="Close sidebar"
-          onClick={() => setSidebarOpen(false)}
+          onClick={() =>
+            setSidebarOpen(false)
+          }
           className="fixed inset-0 z-40 bg-black/40 lg:hidden"
         />
       )}
@@ -197,7 +245,9 @@ export default function AdminLayout({
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => setSidebarOpen(true)}
+              onClick={() =>
+                setSidebarOpen(true)
+              }
               className="rounded-xl p-2 text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
               aria-label="Open navigation"
             >
@@ -224,11 +274,15 @@ export default function AdminLayout({
               <button
                 type="button"
                 onClick={() =>
-                  setNotificationsOpen((current) => !current)
+                  setNotificationsOpen(
+                    (current) => !current
+                  )
                 }
                 className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition hover:bg-muted hover:text-foreground"
                 aria-label="Notifications"
-                aria-expanded={notificationsOpen}
+                aria-expanded={
+                  notificationsOpen
+                }
               >
                 <Bell className="h-5 w-5" />
 
@@ -244,11 +298,14 @@ export default function AdminLayout({
                   <button
                     type="button"
                     aria-label="Close notifications"
-                    onClick={() => setNotificationsOpen(false)}
+                    onClick={() =>
+                      setNotificationsOpen(false)
+                    }
                     className="fixed inset-0 z-40 cursor-default lg:hidden"
                   />
 
                   <div className="absolute right-0 top-12 z-50 w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
+                    {/* Notification header */}
                     <div className="flex items-center justify-between border-b border-border px-4 py-4">
                       <div>
                         <h2 className="font-semibold">
@@ -266,7 +323,9 @@ export default function AdminLayout({
                       {unreadCount > 0 && (
                         <button
                           type="button"
-                          onClick={markAllAsRead}
+                          onClick={
+                            markAllAsRead
+                          }
                           className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                         >
                           <Check className="h-3.5 w-3.5" />
@@ -275,44 +334,84 @@ export default function AdminLayout({
                       )}
                     </div>
 
+                    {/* Notification list */}
                     <div className="max-h-90 overflow-y-auto">
-                      {userNotifications.length > 0 ? (
-                        userNotifications.map((notification) => (
-                          <button
-                            key={notification.id}
-                            type="button"
-                            onClick={() => markAsRead(notification.id)}
-                            className={`flex w-full gap-3 border-b border-border px-4 py-4 text-left transition last:border-0 hover:bg-muted/50 ${
-                              notification.unread
-                                ? "bg-primary/3"
-                                : ""
-                            }`}
-                          >
-                            <div className="mt-1.5 shrink-0">
-                              <span
-                                className={`block h-2.5 w-2.5 rounded-full ${
-                                  notification.unread
-                                    ? "bg-primary"
-                                    : "bg-muted"
-                                }`}
-                              />
+                      {notificationsList.length >
+                      0 ? (
+                        notificationsList.map(
+                          (notification) => (
+                            <div
+                              key={
+                                notification.id
+                              }
+                              className={`flex gap-3 border-b border-border px-4 py-4 transition last:border-0 hover:bg-muted/50 ${
+                                !notification.read
+                                  ? "bg-primary/3"
+                                  : ""
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  markAsRead(
+                                    notification.id
+                                  )
+                                }
+                                className="mt-1.5 shrink-0"
+                                aria-label="Mark notification as read"
+                              >
+                                <span
+                                  className={`block h-2.5 w-2.5 rounded-full ${
+                                    !notification.read
+                                      ? "bg-primary"
+                                      : "bg-muted"
+                                  }`}
+                                />
+                              </button>
+
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold">
+                                  {
+                                    notification.title
+                                  }
+                                </p>
+
+                                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                                  {
+                                    notification.message
+                                  }
+                                </p>
+
+                                <div className="mt-2 flex items-center justify-between gap-3">
+                                  <p className="text-[11px] text-muted-foreground">
+                                    {formatNotificationTime(
+                                      notification.createdAt
+                                    )}
+                                  </p>
+
+                                  {notification.link && (
+                                    <Link
+                                      href={
+                                        notification.link
+                                      }
+                                      onClick={() =>
+                                        setNotificationsOpen(
+                                          false
+                                        )
+                                      }
+                                      className="text-xs font-semibold text-primary hover:underline"
+                                    >
+                                      {notification.type ===
+                                      "meeting"
+                                        ? "Join Meeting"
+                                        : "View"}
+                                    </Link>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold">
-                                {notification.title}
-                              </p>
-
-                              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                                {notification.message}
-                              </p>
-
-                              <p className="mt-1.5 text-[11px] text-muted-foreground">
-                                {notification.time}
-                              </p>
-                            </div>
-                          </button>
-                        ))
+                          )
+                        )
                       ) : (
                         <div className="px-4 py-10 text-center">
                           <Bell className="mx-auto h-8 w-8 text-muted-foreground/50" />
@@ -328,6 +427,7 @@ export default function AdminLayout({
                       )}
                     </div>
 
+                    {/* Footer */}
                     <div className="border-t border-border p-3">
                       <button
                         type="button"
