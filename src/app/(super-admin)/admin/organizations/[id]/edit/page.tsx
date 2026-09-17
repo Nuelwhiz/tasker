@@ -47,7 +47,7 @@ export default function EditOrganizationPage() {
         title="Organization Not Found"
         subtitle="Tasker Administration"
       >
-        <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
+        <div className="flex min-h-100 flex-col items-center justify-center text-center">
           <Building2 className="h-12 w-12 text-muted-foreground/40" />
 
           <h2 className="mt-4 text-xl font-bold">

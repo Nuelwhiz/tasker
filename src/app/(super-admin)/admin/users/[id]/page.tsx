@@ -729,7 +729,7 @@ function InfoItem({
         {label}
       </div>
 
-      <p className="break-words text-sm font-medium">
+      <p className="wrap-break-word text-sm font-medium">
         {value}
       </p>
     </div>
