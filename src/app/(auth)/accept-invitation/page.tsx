@@ -139,7 +139,7 @@ export default function AcceptInvitePage() {
 
               <p className="mt-6 text-lg leading-8 text-white/75">
                 Create your Tasker account, join your organization, and start
-                collaborating with your team.
+                collaborating with your team as soon as possible.
               </p>
 
               <div className="mt-10 space-y-5">

@@ -82,11 +82,11 @@ export default function LoginPage() {
 
             <div className="max-w-lg">
               <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-white/70">
-                Welcome back
+                Welcome back!!
               </p>
 
               <h1 className="text-4xl font-bold leading-tight text-white xl:text-5xl">
-                Get back to work and keep making progress.
+                Get back to work and keep making progress massively.
               </h1>
 
               <p className="mt-6 text-lg leading-8 text-white/75">
